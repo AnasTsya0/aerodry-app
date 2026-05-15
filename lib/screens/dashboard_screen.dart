@@ -19,7 +19,7 @@ class DashboardScreen extends StatelessWidget {
             child: Stack(
               children: [
                 SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(15, 20, 15, 105),
+                  padding: const EdgeInsets.fromLTRB(20, 40, 20, 100),
                   child: Column(
                     children: const [
                       _Header(),
@@ -55,9 +55,9 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ),
                 const Positioned(
-                  left: 55,
-                  right: 55,
-                  bottom: 18,
+                  left: 20,
+                  right: 20,
+                  bottom: 10,
                   child: _BottomNav(),
                 ),
               ],
@@ -77,7 +77,7 @@ class _Header extends StatelessWidget {
     return Row(
       children: [
         const Icon(Icons.person_outline_rounded, size: 35),
-        const SizedBox(width: 18),
+        const SizedBox(width: 8),
         const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +86,7 @@ class _Header extends StatelessWidget {
               Text(
                 'Good Morning',
                 style: TextStyle(
-                  fontSize: 17,
+                  fontSize: 15,
                   height: 1,
                   fontWeight: FontWeight.w900,
                   color: Colors.black,
@@ -95,7 +95,7 @@ class _Header extends StatelessWidget {
               Text(
                 'Monday, 10:00 AM',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 15,
                   height: 1.5,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -177,7 +177,7 @@ class _WeatherCard extends StatelessWidget {
             height: 90,
             fit: BoxFit.contain,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 5),
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -234,7 +234,7 @@ class _WeatherInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 22, color: Colors.white70),
+        Icon(icon, size: 25, color: Colors.white70),
         const SizedBox(width: 4),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,7 +242,7 @@ class _WeatherInfo extends StatelessWidget {
             Text(
               title,
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 13,
                 height: 0.9,
                 fontWeight: FontWeight.w600,
                 color: Colors.white70,
@@ -251,7 +251,7 @@ class _WeatherInfo extends StatelessWidget {
             Text(
               value,
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: Colors.white,
               ),
@@ -398,10 +398,10 @@ class _DryingCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(width: 30),
+                  const SizedBox(width: 60),
 
                   Transform.translate(
-                    offset: const Offset(0, 5),
+                    offset: const Offset(0, 3),
                     child: Container(
                       width: 100,
                       height: 100,
@@ -421,7 +421,7 @@ class _DryingCard extends StatelessWidget {
                     ),
                   ),
 
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
 
                   const Expanded(
                     child: Padding(
@@ -468,7 +468,7 @@ class _DryingCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Transform.translate(
-                        offset: const Offset(-6, 0),
+                        offset: const Offset(-20, 0),
                         child: const Padding(
                           padding: EdgeInsets.only(left: 4),
                           child: _BottomInfo(
@@ -480,7 +480,7 @@ class _DryingCard extends StatelessWidget {
                       ),
                     ),
                     Transform.translate(
-                      offset: const Offset(-4, 0),
+                      offset: const Offset(-12, 0),
                       child: const SizedBox(
                         height: 22,
                         child: VerticalDivider(
@@ -528,7 +528,7 @@ class _DryingText extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, color: Colors.white70, size: 25),
-        const SizedBox(width: 5),
+        const SizedBox(width: 7),
         Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,7 +536,7 @@ class _DryingText extends StatelessWidget {
             Text(
               title,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 height: 1.5,
                 fontWeight: FontWeight.w600,
                 color: Colors.white70,
@@ -546,7 +546,7 @@ class _DryingText extends StatelessWidget {
             Text(
               value,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 height: 1.05,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -655,7 +655,7 @@ class _MiniCard extends StatelessWidget {
       child: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 9, 10, 10),
+            padding: const EdgeInsets.fromLTRB(6, 9, 2, 10),
             child: Column(
               children: [
                 Text(
@@ -669,25 +669,28 @@ class _MiniCard extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 9),
+                const SizedBox(height: 15),
 
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Image.asset(imagePath, fit: BoxFit.contain),
+                    Transform.translate(
+                      offset: const Offset(5, 0), // kiri kanan
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.18),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Image.asset(imagePath, fit: BoxFit.contain),
+                        ),
                       ),
                     ),
 
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 11),
 
                     Expanded(
                       child: Padding(
@@ -698,8 +701,8 @@ class _MiniCard extends StatelessWidget {
                             Text(
                               label,
                               style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
                                 color: Colors.white70,
                                 height: 1,
                               ),
@@ -710,7 +713,7 @@ class _MiniCard extends StatelessWidget {
                             Text(
                               value,
                               style: const TextStyle(
-                                fontSize: 13,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFF4DFF88),
                                 height: 1,
@@ -723,13 +726,13 @@ class _MiniCard extends StatelessWidget {
                   ],
                 ),
 
-                const Spacer(),
+                const SizedBox(height: 15),
 
                 Row(
                   children: [
                     const Icon(
                       Icons.access_time_rounded,
-                      size: 15,
+                      size: 19,
                       color: Colors.white60,
                     ),
 
@@ -739,9 +742,9 @@ class _MiniCard extends StatelessWidget {
                       child: Text(
                         footerText,
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           height: 1.15,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: Colors.white60,
                         ),
                       ),
@@ -753,8 +756,8 @@ class _MiniCard extends StatelessWidget {
           ),
 
           Positioned(
-            right: 15,
-            bottom: 10,
+            right: 10,
+            bottom: 15,
             child: Container(
               width: 30,
               height: 30,
@@ -780,56 +783,75 @@ class _BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 60,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(19),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.20),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return SizedBox(
+      height: 95,
+      width: double.infinity,
       child: Stack(
+        alignment: Alignment.bottomCenter,
         clipBehavior: Clip.none,
-        alignment: Alignment.center,
         children: [
-          const Positioned(
-            left: 45,
-            child: Icon(Icons.menu_rounded, size: 26, color: Color(0xFF8D969F)),
-          ),
-          const Positioned(
-            right: 45,
-            child: Icon(
-              Icons.person_outline_rounded,
-              size: 26,
-              color: Color(0xFF8D969F),
+          // NAVBAR PUTIH
+          Positioned(
+            bottom: 0,
+            child: Image.asset(
+              'assets/images/navbar.png',
+              width: 330,
+              fit: BoxFit.contain,
             ),
           ),
+
+          // ICON LIST
           Positioned(
-            top: -24,
+            left: 60,
+            bottom: 26,
+            child: Image.asset(
+              'assets/images/navbarlog.png',
+              width: 35,
+              height: 35,
+            ),
+          ),
+
+          // ICON PROFILE
+          Positioned(
+            right: 60,
+            bottom: 25,
+            child: Image.asset(
+              'assets/images/profile.png',
+              width: 35,
+              height: 35,
+            ),
+          ),
+
+          // BULETAN BIRU
+          Positioned(
+            top: -9,
             child: Container(
-              width: 56,
-              height: 56,
+              width: 74,
+              height: 74,
               decoration: BoxDecoration(
-                color: const Color(0xFF4E9CED),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 5),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4E6EC4), Color(0xFF74C0F3)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.22),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
+                    color: Colors.black.withOpacity(0.20),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.home_outlined,
-                color: Colors.white,
-                size: 28,
+
+              // ICON HOME
+              child: Center(
+                child: Image.asset(
+                  'assets/images/navbarhome.png',
+                  width: 35,
+                  height: 35,
+                ),
               ),
             ),
           ),
