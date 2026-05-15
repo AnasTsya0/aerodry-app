@@ -76,8 +76,14 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Icon(Icons.person_outline_rounded, size: 35),
-        const SizedBox(width: 8),
+        Image.asset(
+          'assets/images/profile.png',
+          width: 30,
+          height: 30,
+          fit: BoxFit.contain,
+          color: Colors.black,
+        ),
+        const SizedBox(width: 7),
         const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
