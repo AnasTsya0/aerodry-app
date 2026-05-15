@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:aerodry_app/screens/profile/profile_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -821,10 +822,20 @@ class _BottomNav extends StatelessWidget {
           Positioned(
             right: 60,
             bottom: 25,
-            child: Image.asset(
-              'assets/images/profile.png',
-              width: 35,
-              height: 35,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
+              },
+              child: Image.asset(
+                'assets/images/profile.png',
+                width: 35,
+                height: 35,
+              ),
             ),
           ),
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 import '../dashboard_screen.dart';
@@ -33,11 +34,23 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void loginValidation() {
+  Future<void> loginValidation() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
     if (email == "admin@gmail.com" && password == "123456") {
+      final prefs = await SharedPreferences.getInstance();
+
+      if (rememberMe) {
+        await prefs.setBool('rememberMe', true);
+        await prefs.setString('savedEmail', email);
+        await prefs.setString('savedPassword', password);
+      } else {
+        await prefs.setBool('rememberMe', false);
+        await prefs.remove('savedEmail');
+        await prefs.remove('savedPassword');
+      }
+
       setState(() {
         isLoginError = false;
         errorMessage = "";
@@ -53,6 +66,25 @@ class _LoginScreenState extends State<LoginScreen> {
         errorMessage = "Incorrect email or password";
       });
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadRememberedAccount();
+  }
+
+  Future<void> loadRememberedAccount() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      rememberMe = prefs.getBool('rememberMe') ?? false;
+
+      if (rememberMe) {
+        emailController.text = prefs.getString('savedEmail') ?? '';
+        passwordController.text = prefs.getString('savedPassword') ?? '';
+      }
+    });
   }
 
   @override

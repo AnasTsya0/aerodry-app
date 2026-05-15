@@ -1,200 +1,277 @@
 import 'package:flutter/material.dart';
+import 'package:aerodry_app/screens/onboarding/onboarding_screen.dart';
+import 'package:aerodry_app/screens/profile/connected_device_screen.dart';
+import 'package:aerodry_app/screens/profile/location_screen.dart';
+import 'package:aerodry_app/screens/dashboard_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  static const bgColor = Color(0xFFEAF4FF);
-  static const blue = Color(0xFF2F77FF);
-  static const darkBlue = Color(0xFF0B438F);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: const Color(0xFFEAF3FF),
       body: SafeArea(
-        child: Center(
-          child: SizedBox(
-            width: 390,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 34),
-              child: Column(
-                children: [
-                  const SizedBox(height: 28),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 33),
+          child: Column(
+            children: [
+              const SizedBox(height: 30),
 
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Icon(
-                        Icons.close_rounded,
-                        color: Color(0xFF5C8CFF),
-                        size: 28,
+              Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const DashboardScreen(),
+                      ),
+                    );
+                  },
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: Color(0xFF5E87FF),
+                    size: 30,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              Container(
+                width: 120,
+                height: 120,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFC9DCF7),
+                  shape: BoxShape.circle,
+                ),
+                child: Image.asset(
+                  'assets/images/profilescr.png',
+                  width: 35,
+                  height: 35,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              const Text(
+                'Rania',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF174984),
+                ),
+              ),
+
+              const SizedBox(height: 2),
+
+              const Text(
+                'raniamasyaputri@gmail.com',
+                style: TextStyle(fontSize: 14, color: Color(0xFF6E8DB0)),
+              ),
+
+              const SizedBox(height: 8),
+
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC9F1D4),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleAvatar(radius: 3, backgroundColor: Color(0xFF24BF58)),
+                    SizedBox(width: 4),
+                    Text(
+                      'Online',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF24BF58),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
+                  ],
+                ),
+              ),
 
-                  const SizedBox(height: 58),
+              const SizedBox(height: 13),
 
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        width: 86,
-                        height: 86,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFD5E4FA),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.person_outline_rounded,
-                          size: 64,
-                          color: darkBlue,
-                        ),
-                      ),
-
-                      Positioned(
-                        right: -3,
-                        top: 12,
-                        child: Container(
-                          width: 25,
-                          height: 25,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 17,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          height: 34,
+                          width: 34,
                           decoration: const BoxDecoration(
-                            color: blue,
+                            color: Color(0xFFF1F6FF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(5),
+                            child: Image.asset(
+                              'assets/images/profile.png',
+                              width: 19,
+                              height: 19,
+                              fit: BoxFit.contain,
+                              color: const Color.fromARGB(255, 0, 36, 129),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 18),
+
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                'Email',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'raniamasyaputri@gmail.com',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  height: 1.35,
+                                  color: Color(0xFF9A9A9A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        Container(
+                          width: 23,
+                          height: 23,
+                          decoration: const BoxDecoration(
+                            color: Color.fromARGB(255, 0, 54, 190),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
-                            Icons.edit_rounded,
+                            Icons.edit,
                             color: Colors.white,
-                            size: 13,
+                            size: 12,
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  const Text(
-                    'Rania',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: darkBlue,
-                    ),
-                  ),
-
-                  const SizedBox(height: 2),
-
-                  const Text(
-                    'raniamasyaputri@gmail.com',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF8FA1B7),
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE4FFD9),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      '● Online',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF49CC48),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 72),
-
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 13,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: Column(
-                      children: const [
-                        _ProfileItem(
-                          icon: Icons.person_outline_rounded,
-                          title: 'Email',
-                          subtitle: 'raniamasyaputri@gmail.com',
-                          trailingIcon: Icons.edit_rounded,
-                          showDivider: true,
-                        ),
-
-                        _ProfileItem(
-                          icon: Icons.devices_rounded,
-                          title: 'Connected Device',
-                          subtitle: 'Device ID : CLP-7XC5BA',
-                          trailingIcon: Icons.chevron_right_rounded,
-                          showDivider: true,
-                        ),
-
-                        _ProfileItem(
-                          icon: Icons.location_on_outlined,
-                          title: 'Current Location',
-                          subtitle: 'Jakarta, Indonesia\nLast updated : 10 AM',
-                          trailingIcon: Icons.chevron_right_rounded,
-                          showDivider: false,
                         ),
                       ],
                     ),
-                  ),
 
-                  const Spacer(),
+                    const Divider(
+                      height: 19,
+                      thickness: 1,
+                      color: Color(0xFFE8E8E8),
+                    ),
 
-                  SizedBox(
-                    width: double.infinity,
-                    height: 58,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ConnectedDevicePage(),
+                          ),
+                        );
                       },
-
-                      icon: const Icon(
-                        Icons.logout_rounded,
-                        color: Colors.red,
-                        size: 19,
-                      ),
-
-                      label: const Text(
-                        'Logout',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.red,
-                        ),
-                      ),
-
-                      style: ElevatedButton.styleFrom(
-                        elevation: 0,
-                        backgroundColor: const Color(0xFFFFA5AA),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(11),
+                      child: const _ProfileItem(
+                        icon: Icons.credit_card_rounded,
+                        title: 'Connected Device',
+                        subtitle: 'Device ID : CLP-7XC5BA',
+                        trailing: Icon(
+                          Icons.chevron_right_rounded,
+                          color: Color.fromARGB(255, 0, 36, 129),
+                          size: 28,
                         ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 55),
-                ],
+                    const Divider(
+                      height: 19,
+                      thickness: 1,
+                      color: Color(0xFFE8E8E8),
+                    ),
+
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LocationScreen(),
+                          ),
+                        );
+                      },
+                      child: const _ProfileItem(
+                        icon: Icons.location_on_outlined,
+                        title: 'Current Location',
+                        subtitle: 'Jakarta, Indonesia\nLast updated : 10 AM',
+                        trailing: Icon(
+                          Icons.chevron_right_rounded,
+                          color: Color.fromARGB(255, 0, 36, 129),
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+
+              const Spacer(),
+
+              Padding(
+                padding: const EdgeInsets.only(bottom: 50),
+                child: SizedBox(
+                  width: 300,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const OnboardingScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.logout_rounded,
+                      color: Color(0xFFFF1D1D),
+                      size: 20,
+                    ),
+                    label: const Text(
+                      'Logout',
+                      style: TextStyle(
+                        color: Color(0xFFFF1D1D),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFA7A7),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -203,103 +280,73 @@ class ProfileScreen extends StatelessWidget {
 }
 
 class _ProfileItem extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final String? imagePath;
   final String title;
   final String subtitle;
-  final IconData trailingIcon;
-  final bool showDivider;
+  final Widget trailing;
 
   const _ProfileItem({
-    required this.icon,
+    this.icon,
+    this.imagePath,
     required this.title,
     required this.subtitle,
-    required this.trailingIcon,
-    required this.showDivider,
+    required this.trailing,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       children: [
         Container(
-          constraints: const BoxConstraints(minHeight: 64),
+          height: 34,
+          width: 34,
+          decoration: const BoxDecoration(
+            color: Color(0xFFF1F6FF),
+            shape: BoxShape.circle,
+          ),
+          child: imagePath != null
+              ? ClipOval(
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Image.asset(
+                      imagePath!,
+                      fit: BoxFit.contain,
+                      color: const Color(0xFF3C73FF),
+                    ),
+                  ),
+                )
+              : Icon(icon, color: const Color(0xFF3C73FF), size: 21),
+        ),
 
-          child: Row(
+        const SizedBox(width: 18),
+
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 37,
-                height: 37,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEAF4FF),
-                  shape: BoxShape.circle,
-                ),
-
-                child: Icon(icon, color: ProfileScreen.blue, size: 21),
-              ),
-
-              const SizedBox(width: 17),
-
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.black,
-                      ),
-                    ),
-
-                    const SizedBox(height: 3),
-
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        height: 1.3,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF9AA5B1),
-                      ),
-                    ),
-                  ],
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
                 ),
               ),
-
-              const SizedBox(width: 8),
-
-              Container(
-                width: trailingIcon == Icons.edit_rounded ? 24 : 26,
-                height: trailingIcon == Icons.edit_rounded ? 24 : 26,
-
-                decoration: BoxDecoration(
-                  color: trailingIcon == Icons.edit_rounded
-                      ? ProfileScreen.blue
-                      : Colors.transparent,
-                  shape: BoxShape.circle,
-                ),
-
-                child: Icon(
-                  trailingIcon,
-                  color: trailingIcon == Icons.edit_rounded
-                      ? Colors.white
-                      : const Color(0xFF8D969F),
-                  size: trailingIcon == Icons.edit_rounded ? 13 : 25,
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.35,
+                  color: Color(0xFF9A9A9A),
                 ),
               ),
             ],
           ),
         ),
 
-        if (showDivider)
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: Color(0xFFE5E5E5),
-            indent: 54,
-          ),
+        trailing,
       ],
     );
   }
