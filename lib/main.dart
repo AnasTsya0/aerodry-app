@@ -1,5 +1,6 @@
+import 'package:aerodry_app/screens/dashboard_screen.dart';
 import 'package:flutter/material.dart';
-import 'screens/splash/splash_screen.dart';
+import 'screens/dashboard_screen.dart';
 
 void main() {
   runApp(const AeroDryApp());
@@ -13,7 +14,7 @@ class AeroDryApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'AeroDry',
-      home: const SplashScreen(),
+      home: const DashboardScreen(),
     );
   }
 }

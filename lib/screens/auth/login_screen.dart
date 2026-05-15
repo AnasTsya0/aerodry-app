@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'signup_screen.dart';
+import 'forgot_password_screen.dart';
+import '../dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,7 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
   String? emailError;
 
   final TextEditingController emailController = TextEditingController();
-
   final TextEditingController passwordController = TextEditingController();
 
   bool get isFormValid =>
@@ -42,7 +43,10 @@ class _LoginScreenState extends State<LoginScreen> {
         errorMessage = "";
       });
 
-      print("Login Success");
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
     } else {
       setState(() {
         isLoginError = true;
@@ -88,7 +92,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 76,
                           fit: BoxFit.contain,
                         ),
-
                         const Text(
                           'Smart drying. Smarter living',
                           style: TextStyle(
@@ -115,7 +118,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: Color(0xFF073E8E),
                           ),
                         ),
-
                         TextSpan(
                           text: 'Back!',
                           style: TextStyle(
@@ -179,7 +181,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Row(
                         children: [
                           const SizedBox(width: 5),
-
                           Text(
                             emailError!,
                             style: TextStyle(
@@ -216,14 +217,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         errorMessage = "";
                       });
                     },
-
                     suffixIcon: GestureDetector(
                       onTap: () {
                         setState(() {
                           obscurePassword = !obscurePassword;
                         });
                       },
-
                       child: Icon(
                         obscurePassword
                             ? Icons.visibility_off_outlined
@@ -240,7 +239,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Row(
                         children: [
                           const SizedBox(width: 5),
-
                           Text(
                             errorMessage,
                             style: TextStyle(
@@ -257,12 +255,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   Align(
                     alignment: Alignment.centerRight,
-                    child: Text(
-                      'Forgot Password?',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF3F8CFF),
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Forgot Password?',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF3F8CFF),
+                        ),
                       ),
                     ),
                   ),
@@ -309,21 +317,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       height: 50,
                       child: ElevatedButton(
                         onPressed: isFormValid ? loginValidation : null,
-
                         style: ElevatedButton.styleFrom(
                           elevation: 0,
-
                           backgroundColor: isFormValid
                               ? const Color(0xFF449BF5)
                               : Colors.grey.shade400,
-
                           disabledBackgroundColor: Colors.grey.shade400,
-
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
                         ),
-
                         child: const Text(
                           'Log In',
                           style: TextStyle(
@@ -359,7 +362,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             );
                           },
-
                           child: const Text(
                             'Sign Up Here!',
                             style: TextStyle(
@@ -405,47 +407,36 @@ class _InputField extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 58,
-
       child: TextField(
         controller: controller,
         obscureText: obscureText,
-
         onChanged: (_) {
           if (onChanged != null) {
             onChanged!();
           }
         },
-
         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-
         decoration: InputDecoration(
           filled: true,
           fillColor: Colors.white,
-
           hintText: hint,
-
           hintStyle: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: Color(0xFFB3B8C2),
           ),
-
           prefixIcon: Icon(icon, color: const Color(0xFF3F8CFF), size: 24),
-
           suffixIcon: suffixIcon == null
               ? null
               : Padding(
                   padding: const EdgeInsets.only(right: 14),
                   child: suffixIcon,
                 ),
-
           suffixIconConstraints: const BoxConstraints(
             minWidth: 35,
             minHeight: 35,
           ),
-
           contentPadding: const EdgeInsets.symmetric(vertical: 18),
-
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,

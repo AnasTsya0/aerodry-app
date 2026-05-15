@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:aerodry_app/screens/dashboard_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -11,6 +12,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool obscurePassword = true;
   bool obscureConfirmPassword = true;
 
+  final fullNameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
@@ -20,31 +22,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String? passwordError;
 
   void validateForm() {
+    final fullName = fullNameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text;
     final confirmPassword = confirmPasswordController.text;
 
-    final emailValid = RegExp(
-      r'^[\w-\.]+@(gmail\.com|yahoo\.com|outlook\.com|hotmail\.com)$',
-    ).hasMatch(email);
-
+    final emailValid = email.endsWith('@gmail.com');
     final passwordMatch = password.isNotEmpty && password == confirmPassword;
 
     setState(() {
       emailError = email.isEmpty || emailValid
           ? null
-          : 'Please enter a valid email';
+          : 'Please enter a valid Gmail';
 
       passwordError = confirmPassword.isEmpty || passwordMatch
           ? null
           : 'Passwords do not match';
 
-      isValid = emailValid && passwordMatch;
+      isValid = fullName.isNotEmpty && emailValid && passwordMatch;
     });
+  }
+
+  void signUpSuccess() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const DashboardScreen()),
+    );
   }
 
   @override
   void dispose() {
+    fullNameController.dispose();
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
@@ -141,30 +149,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                   const SizedBox(height: 30),
 
-                  const Text(
-                    'Full Name',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                  ),
+                  const Text('Full Name', style: _labelStyle),
                   const SizedBox(height: 4),
-                  const _InputField(
+                  _InputField(
+                    controller: fullNameController,
                     hint: 'Enter your full name',
                     icon: Icons.person_outline_rounded,
+                    onChanged: (_) => validateForm(),
                   ),
 
                   const SizedBox(height: 7),
 
-                  const Text(
-                    'Email',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                  ),
+                  const Text('Email', style: _labelStyle),
                   const SizedBox(height: 4),
                   _InputField(
                     controller: emailController,
@@ -189,14 +185,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                   const SizedBox(height: 7),
 
-                  const Text(
-                    'Password',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                  ),
+                  const Text('Password', style: _labelStyle),
                   const SizedBox(height: 4),
                   _InputField(
                     controller: passwordController,
@@ -222,14 +211,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                   const SizedBox(height: 7),
 
-                  const Text(
-                    'Confirm Password',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                  ),
+                  const Text('Confirm Password', style: _labelStyle),
                   const SizedBox(height: 4),
                   _InputField(
                     controller: confirmPasswordController,
@@ -274,7 +256,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: isValid ? () {} : null,
+                        onPressed: isValid ? signUpSuccess : null,
                         style: ElevatedButton.styleFrom(
                           elevation: 0,
                           backgroundColor: isValid
@@ -335,6 +317,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 }
+
+const TextStyle _labelStyle = TextStyle(
+  fontSize: 14,
+  fontWeight: FontWeight.w600,
+  color: Colors.black,
+);
 
 class _InputField extends StatelessWidget {
   final String hint;
