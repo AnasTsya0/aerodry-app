@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:aerodry_app/screens/onboarding/onboarding_screen.dart';
 import 'package:aerodry_app/screens/profile/connected_device_screen.dart';
-import 'package:aerodry_app/screens/profile/location_screen.dart';
 import 'package:aerodry_app/screens/dashboard_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -208,23 +207,11 @@ class ProfileScreen extends StatelessWidget {
                     ),
 
                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const LocationScreen(),
-                          ),
-                        );
-                      },
                       child: const _ProfileItem(
                         icon: Icons.location_on_outlined,
                         title: 'Current Location',
                         subtitle: 'Jakarta, Indonesia\nLast updated : 10 AM',
-                        trailing: Icon(
-                          Icons.chevron_right_rounded,
-                          color: Color.fromARGB(255, 0, 36, 129),
-                          size: 28,
-                        ),
+                        trailing: SizedBox(),
                       ),
                     ),
                   ],
