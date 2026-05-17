@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:aerodry_app/screens/profile/add_new_device_screen.dart';
+import 'package:aerodry_app/constants/app_state.dart';
 
 class ConnectedDevicePage extends StatefulWidget {
   const ConnectedDevicePage({super.key});
@@ -12,10 +13,34 @@ class ConnectedDevicePage extends StatefulWidget {
 }
 
 class _ConnectedDevicePageState extends State<ConnectedDevicePage> {
-  int selectedDevice = 0;
+  // Local selection index — starts at global activeDeviceIndex
+  late int selectedIndex;
 
   static const Color blue = Color(0xFF0B4EA2);
   static const Color bg = Color(0xFFEAF3FF);
+
+  @override
+  void initState() {
+    super.initState();
+    selectedIndex = activeDeviceIndex;
+  }
+
+  void _removeSelectedDevice() {
+    if (deviceList.isEmpty) return;
+
+    setState(() {
+      deviceList.removeAt(selectedIndex);
+
+      // Clamp activeDeviceIndex after removal
+      if (deviceList.isEmpty) {
+        activeDeviceIndex = 0;
+        selectedIndex = 0;
+      } else {
+        selectedIndex = selectedIndex.clamp(0, deviceList.length - 1);
+        activeDeviceIndex = selectedIndex;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +53,7 @@ class _ConnectedDevicePageState extends State<ConnectedDevicePage> {
             children: [
               const SizedBox(height: 30),
 
+              // ── App bar ──
               Row(
                 children: [
                   GestureDetector(
@@ -69,53 +95,66 @@ class _ConnectedDevicePageState extends State<ConnectedDevicePage> {
                 ),
               ),
 
-              const SizedBox(height: 42),
+              const SizedBox(height: 24),
 
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedDevice = 0;
-                  });
-                },
-                child: _DeviceCard(
-                  imagePath: 'assets/images/device.png',
-                  name: 'House, Aero Dry',
-                  location: 'Tangerang, House',
-                  status: 'Online',
-                  statusColor: Color(0xFF3FCB62),
-                  statusBg: Color(0xFFD5F6DE),
-                  selected: selectedDevice == 0,
+              // ── Device list ──
+              if (deviceList.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 18),
+                  child: Text(
+                    'No devices yet. Add a new device below.',
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              else
+                Column(
+                  children: [
+                    for (int i = 0; i < deviceList.length; i++) ...[
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedIndex = i;
+                            // Commit to global state immediately on tap
+                            activeDeviceIndex = i;
+                          });
+                        },
+                        child: _DeviceCard(
+                          imagePath: 'assets/images/device.png',
+                          name: deviceList[i].name,
+                          location: deviceList[i].location,
+                          // Online = whichever device is currently selected/active
+                          status: selectedIndex == i ? 'Online' : 'Offline',
+                          statusColor: selectedIndex == i
+                              ? const Color(0xFF3FCB62)
+                              : const Color(0xFF9D9D9D),
+                          statusBg: selectedIndex == i
+                              ? const Color(0xFFD5F6DE)
+                              : const Color(0xFFE0E0E0),
+                          selected: selectedIndex == i,
+                        ),
+                      ),
+                      if (i < deviceList.length - 1) const SizedBox(height: 14),
+                    ],
+                  ],
                 ),
-              ),
-              const SizedBox(height: 14),
-
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedDevice = 1;
-                  });
-                },
-                child: _DeviceCard(
-                  imagePath: 'assets/images/device.png',
-                  name: 'Boarding House, Aero Dry',
-                  location: 'Jakarta, Boarding House',
-                  status: 'Offline',
-                  statusColor: Color(0xFF9D9D9D),
-                  statusBg: Color(0xFFE0E0E0),
-                  selected: selectedDevice == 1,
-                ),
-              ),
 
               const SizedBox(height: 24),
 
+              // ── Add new device button ──
               GestureDetector(
-                onTap: () {
-                  Navigator.push(
+                onTap: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => const AddNewDeviceScreen(),
                     ),
                   );
+                  // Refresh list after returning from AddNewDeviceScreen
+                  setState(() {
+                    selectedIndex =
+                        selectedIndex.clamp(0, (deviceList.length - 1).clamp(0, 99));
+                  });
                 },
                 child: Container(
                   height: 42,
@@ -125,8 +164,8 @@ class _ConnectedDevicePageState extends State<ConnectedDevicePage> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(7),
                   ),
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Icon(Icons.add_rounded, color: blue, size: 24),
                       SizedBox(width: 12),
                       Text(
@@ -146,6 +185,7 @@ class _ConnectedDevicePageState extends State<ConnectedDevicePage> {
 
               const SizedBox(height: 24),
 
+              // ── Info card ──
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -156,8 +196,8 @@ class _ConnectedDevicePageState extends State<ConnectedDevicePage> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(7),
                 ),
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Icon(Icons.info_outline_rounded, color: blue, size: 19),
                     SizedBox(width: 13),
                     Expanded(
@@ -177,15 +217,17 @@ class _ConnectedDevicePageState extends State<ConnectedDevicePage> {
 
               const Spacer(),
 
+              // ── Remove selected device button ──
               Padding(
                 padding: const EdgeInsets.only(bottom: 30),
                 child: SizedBox(
                   width: double.infinity,
                   height: 42,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: deviceList.isEmpty ? null : _removeSelectedDevice,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF419AF5),
+                      disabledBackgroundColor: const Color(0xFFBBD5F5),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(13),
@@ -232,16 +274,20 @@ class _DeviceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 80,
+      // No fixed height — let content breathe, prevents overflow
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 11),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(7),
+        border: selected
+            ? Border.all(color: ConnectedDevicePage.blue, width: 1.5)
+            : null,
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Image.asset(imagePath, width: 60, height: 69, fit: BoxFit.contain),
+          Image.asset(imagePath, width: 60, height: 60, fit: BoxFit.contain),
 
           const SizedBox(width: 14),
 
@@ -252,17 +298,21 @@ class _DeviceCard extends StatelessWidget {
               children: [
                 Text(
                   name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     color: ConnectedDevicePage.blue,
                   ),
                 ),
-                const SizedBox(height: 0),
+                const SizedBox(height: 2),
                 Text(
                   location,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: ConnectedDevicePage.blue,
                   ),
@@ -290,10 +340,12 @@ class _DeviceCard extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(width: 0),
+          const SizedBox(width: 8),
 
           Icon(
-            selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+            selected
+                ? Icons.check_circle_rounded
+                : Icons.circle_outlined,
             color: ConnectedDevicePage.blue,
             size: 20,
           ),

@@ -2,12 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:aerodry_app/screens/onboarding/onboarding_screen.dart';
 import 'package:aerodry_app/screens/profile/connected_device_screen.dart';
 import 'package:aerodry_app/screens/dashboard_screen.dart';
+import 'package:aerodry_app/constants/app_state.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
   Widget build(BuildContext context) {
+    final hasDevice = deviceList.isNotEmpty;
+    final activeDevice = hasDevice ? deviceList[activeDeviceIndex] : null;
+    final deviceId = hasDevice ? activeDevice!.name : 'No device';
+    final deviceLocation = hasDevice ? activeDevice!.location : 'Unknown location';
+
     return Scaffold(
       backgroundColor: const Color(0xFFEAF3FF),
       body: SafeArea(
@@ -180,19 +191,21 @@ class ProfileScreen extends StatelessWidget {
                     ),
 
                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => const ConnectedDevicePage(),
                           ),
                         );
+                        // Rebuild to reflect active device changes
+                        if (mounted) setState(() {});
                       },
-                      child: const _ProfileItem(
+                      child: _ProfileItem(
                         icon: Icons.credit_card_rounded,
                         title: 'Connected Device',
-                        subtitle: 'Device ID : CLP-7XC5BA',
-                        trailing: Icon(
+                        subtitle: 'Device ID : $deviceId',
+                        trailing: const Icon(
                           Icons.chevron_right_rounded,
                           color: Color.fromARGB(255, 0, 36, 129),
                           size: 28,
@@ -207,11 +220,11 @@ class ProfileScreen extends StatelessWidget {
                     ),
 
                     GestureDetector(
-                      child: const _ProfileItem(
+                      child: _ProfileItem(
                         icon: Icons.location_on_outlined,
                         title: 'Current Location',
-                        subtitle: 'Jakarta, Indonesia\nLast updated : 10 AM',
-                        trailing: SizedBox(),
+                        subtitle: deviceLocation,
+                        trailing: const SizedBox(),
                       ),
                     ),
                   ],

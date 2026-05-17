@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:aerodry_app/screens/profile/search_location_screen.dart';
+import 'package:aerodry_app/constants/app_state.dart';
 
 class AddNewDeviceScreen extends StatefulWidget {
   const AddNewDeviceScreen({super.key});
@@ -11,6 +12,21 @@ class AddNewDeviceScreen extends StatefulWidget {
 class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
   final TextEditingController deviceController = TextEditingController();
 
+  String selectedLocation = 'Bintaro, Jakarta City';
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen to controller to rebuild button enabled/disabled state
+    deviceController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    deviceController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     const blue = Color(0xFF3F95F4);
@@ -20,7 +36,7 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
       backgroundColor: const Color(0xFFEAF4FF),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 22),
+          padding: const EdgeInsets.symmetric(horizontal: 37),
           child: Column(
             children: [
               const SizedBox(height: 30),
@@ -124,7 +140,7 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
                           border: InputBorder.none,
                           hintText: 'Input device name',
                           hintStyle: TextStyle(
-                            fontSize: 12,
+                            fontSize: 14,
                             color: Colors.grey,
                           ),
                         ),
@@ -139,9 +155,7 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
                     const SizedBox(width: 6),
 
                     GestureDetector(
-                      onTap: () {
-                        deviceController.clear();
-                      },
+                      onTap: () => deviceController.clear(),
                       child: const Icon(
                         Icons.cancel_outlined,
                         size: 15,
@@ -186,25 +200,39 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.location_on_outlined, size: 15, color: blue),
-                    SizedBox(width: 20),
-                    Text(
-                      'Bintaro, Jakarta City',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: darkBlue,
-                        fontWeight: FontWeight.w500,
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 15,
+                      color: blue,
+                    ),
+
+                    const SizedBox(width: 20),
+
+                    Expanded(
+                      child: Text(
+                        selectedLocation,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: darkBlue,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                    Spacer(),
+
                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => const SearchLocationScreen(),
                           ),
                         );
+
+                        if (result != null && mounted) {
+                          setState(() {
+                            selectedLocation = result as String;
+                          });
+                        }
                       },
                       child: const Icon(
                         Icons.arrow_forward_ios,
@@ -222,16 +250,35 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
                 width: 250,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  // Disabled when device name is empty
+                  onPressed: deviceController.text.trim().isEmpty
+                      ? null
+                      : () {
+                          final deviceName = deviceController.text.trim();
+
+                          // Save to global device list
+                          deviceList.add(DeviceModel(
+                            name: deviceName,
+                            location: selectedLocation,
+                          ));
+
+                          // Save location to saved addresses if new
+                          if (!savedAddresses.contains(selectedLocation)) {
+                            savedAddresses.add(selectedLocation);
+                          }
+
+                          Navigator.pop(context);
+                        },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: blue,
+                    backgroundColor: const Color(0xFF3F95F4),
+                    disabledBackgroundColor: const Color(0xFFB0D4FA),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
                     elevation: 0,
                   ),
                   child: const Text(
-                    'Connect Device',
+                    'Add New Device',
                     style: TextStyle(
                       fontSize: 15,
                       color: Colors.white,
@@ -245,65 +292,6 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _SearchBox extends StatelessWidget {
-  const _SearchBox();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 34,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F4F4),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: const [
-          Icon(Icons.search, size: 16, color: Colors.grey),
-          SizedBox(width: 10),
-          Text(
-            'Search location',
-            style: TextStyle(fontSize: 15, color: Colors.black87),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LocationItem extends StatelessWidget {
-  final String text;
-  final bool selected;
-
-  const _LocationItem({required this.text, this.selected = false});
-
-  @override
-  Widget build(BuildContext context) {
-    const blue = Color(0xFF0B4EA2);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          const Icon(Icons.location_on_outlined, size: 15, color: blue),
-          const SizedBox(width: 7),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          if (selected) const Icon(Icons.check_circle, size: 16, color: blue),
-        ],
       ),
     );
   }
