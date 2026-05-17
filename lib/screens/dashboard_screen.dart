@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:aerodry_app/screens/profile/profile_screen.dart';
+import 'package:aerodry_app/screens/weather/weather_screen.dart';
+import 'package:aerodry_app/services/weather_service.dart';
+import 'package:aerodry_app/constants/app_state.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   static const blueDark = Color(0xFF4E6EC4);
@@ -9,9 +12,48 @@ class DashboardScreen extends StatelessWidget {
   static const bg = Color(0xFFEAF4FF);
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen>
+    with RouteAware {
+  WeatherData? _weather;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchWeather();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
+  // Called when navigating back to this screen
+  @override
+  void didPopNext() {
+    _fetchWeather();
+  }
+
+  Future<void> _fetchWeather() async {
+    setState(() => _loading = true);
+    try {
+      final location = deviceList.isNotEmpty
+          ? deviceList[activeDeviceIndex].location
+          : 'Tangerang';
+      final data = await WeatherService.fetchForLocation(location);
+      if (mounted) setState(() { _weather = data; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: DashboardScreen.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -22,14 +64,32 @@ class DashboardScreen extends StatelessWidget {
                 SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(20, 40, 20, 100),
                   child: Column(
-                    children: const [
-                      _Header(),
-                      SizedBox(height: 16),
-                      _WeatherCard(),
-                      SizedBox(height: 12),
-                      _DryingCard(),
-                      SizedBox(height: 12),
-                      Row(
+                    children: [
+                      const _Header(),
+                      const SizedBox(height: 16),
+
+                      GestureDetector(
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const WeatherScreen(),
+                            ),
+                          );
+                          // Refresh when back from WeatherScreen
+                          _fetchWeather();
+                        },
+                        child: _WeatherCard(
+                          weather: _weather,
+                          loading: _loading,
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+                      const _DryingCard(),
+                      const SizedBox(height: 12),
+
+                      const Row(
                         children: [
                           Expanded(
                             child: _MiniCard(
@@ -55,11 +115,11 @@ class DashboardScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Positioned(
+                Positioned(
                   left: 20,
                   right: 20,
                   bottom: 10,
-                  child: _BottomNav(),
+                  child: _BottomNav(onProfileReturn: _fetchWeather),
                 ),
               ],
             ),
@@ -135,12 +195,21 @@ class _Header extends StatelessWidget {
 }
 
 class _WeatherCard extends StatelessWidget {
-  const _WeatherCard();
+  final WeatherData? weather;
+  final bool loading;
+
+  const _WeatherCard({this.weather, this.loading = false});
 
   @override
   Widget build(BuildContext context) {
+    final w = weather;
+    final cityName = w?.cityName ??
+        (deviceList.isNotEmpty
+            ? WeatherService.extractCityName(deviceList[activeDeviceIndex].location)
+            : 'Loading...');
+
     return Container(
-      height: 290,
+      height: 320,
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -157,71 +226,99 @@ class _WeatherCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          const SizedBox(height: 13),
-          const Text(
-            'Jakarta',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-            ),
-          ),
-          const Text(
-            '31°',
-            style: TextStyle(
-              fontSize: 35,
-              height: 0.95,
-              fontWeight: FontWeight.w400,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Image.asset(
-            'assets/images/sun.png',
-            width: 90,
-            height: 90,
-            fit: BoxFit.contain,
-          ),
-          const SizedBox(height: 5),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _WeatherInfo(
-                icon: Icons.water_drop,
-                title: 'Humidity',
-                value: '75%',
-              ),
-              _WeatherInfo(icon: Icons.sunny, title: 'UV Index', value: '2.1'),
-              _WeatherInfo(
-                icon: Icons.air,
-                title: 'Wind Speed',
-                value: '10km/h',
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                _ForecastItem(day: 'Now', icon: Icons.wb_sunny, temp: '31°'),
-                SizedBox(width: 9),
-                _ForecastItem(day: '11', icon: Icons.wb_sunny, temp: '31°'),
-                SizedBox(width: 9),
-                _ForecastItem(day: '12', icon: Icons.wb_sunny, temp: '31°'),
-                SizedBox(width: 9),
-                _ForecastItem(day: '13', icon: Icons.wb_sunny, temp: '30°'),
-                SizedBox(width: 9),
-                _ForecastItem(day: '14', icon: Icons.wb_sunny, temp: '30°'),
-                SizedBox(width: 9),
-                _ForecastItem(day: '15', icon: Icons.cloud, temp: '29°'),
+      child: loading
+          ? const Center(
+              child: CircularProgressIndicator(color: Colors.white))
+          : Column(
+              children: [
+                const SizedBox(height: 16),
+                Text(
+                  cityName,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  w != null ? '${w.current.temperature}°' : '--°',
+                  style: const TextStyle(
+                    fontSize: 35,
+                    height: 0.95,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Image.asset(
+                  w != null
+                      ? WeatherCodeHelper.mainAsset(w.current.weatherCode,
+                          windSpeed: w.current.windSpeed)
+                      : 'assets/images/sun.png',
+                  width: 90,
+                  height: 90,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _WeatherInfo(
+                      icon: Icons.water_drop,
+                      title: 'Humidity',
+                      value: w != null ? '${w.current.humidity}%' : '--',
+                    ),
+                    _WeatherInfo(
+                      icon: Icons.sunny,
+                      title: 'UV Index',
+                      value: w != null
+                          ? w.current.uvIndex.toStringAsFixed(1)
+                          : '--',
+                    ),
+                    _WeatherInfo(
+                      icon: Icons.air,
+                      title: 'Wind Speed',
+                      value: w != null
+                          ? '${w.current.windSpeed.round()}km/h'
+                          : '--',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (w != null)
+                        ...w.hourly.asMap().entries.map((e) => Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (e.key > 0) const SizedBox(width: 9),
+                            _ForecastItem(
+                              day: e.value.hour,
+                              icon: WeatherCodeHelper.hourlyIcon(
+                                  e.value.weatherCode, e.value.windSpeed),
+                              iconColor: WeatherCodeHelper.hourlyIconColor(
+                                  e.value.weatherCode, e.value.windSpeed),
+                              temp: '${e.value.temperature}°',
+                            ),
+                          ],
+                        ))
+                      else
+                        ...[1, 2, 3, 4, 5, 6].map((_) => const Padding(
+                              padding: EdgeInsets.only(right: 9),
+                              child: _ForecastItem(
+                                day: '--',
+                                icon: Icons.wb_sunny_rounded,
+                                iconColor: Color(0xFFFFD323),
+                                temp: '--',
+                              ),
+                            )),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -273,19 +370,22 @@ class _WeatherInfo extends StatelessWidget {
 class _ForecastItem extends StatelessWidget {
   final String day;
   final IconData icon;
+  final Color iconColor;
   final String temp;
 
   const _ForecastItem({
     required this.day,
     required this.icon,
+    required this.iconColor,
     required this.temp,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isNow = day == 'Now';
     return Container(
-      width: 38,
-      height: 60,
+      width: 40,
+      height: 62,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.22),
         borderRadius: BorderRadius.circular(9),
@@ -295,24 +395,21 @@ class _ForecastItem extends StatelessWidget {
         children: [
           Text(
             day,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+            style: TextStyle(
+              fontSize: isNow ? 10.5 : 11,
+              fontWeight: isNow ? FontWeight.w800 : FontWeight.w600,
               color: Colors.white,
             ),
           ),
           const SizedBox(height: 4),
-          Icon(icon, size: 18, color: Color(0xFFFFD323)),
+          Icon(icon, size: 19, color: iconColor),
           const SizedBox(height: 4),
-          Transform.translate(
-            offset: const Offset(2, 0),
-            child: Text(
-              temp,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+          Text(
+            temp,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
             ),
           ),
         ],
@@ -786,7 +883,9 @@ class _MiniCard extends StatelessWidget {
 }
 
 class _BottomNav extends StatelessWidget {
-  const _BottomNav();
+  final VoidCallback? onProfileReturn;
+
+  const _BottomNav({this.onProfileReturn});
 
   @override
   Widget build(BuildContext context) {
@@ -823,13 +922,15 @@ class _BottomNav extends StatelessWidget {
             right: 60,
             bottom: 25,
             child: GestureDetector(
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const ProfileScreen(),
                   ),
                 );
+                // Refresh weather when returning from profile (device may have changed)
+                onProfileReturn?.call();
               },
               child: Image.asset(
                 'assets/images/profile.png',
@@ -852,7 +953,6 @@ class _BottomNav extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.20),

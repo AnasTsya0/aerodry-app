@@ -1,7 +1,4 @@
-import 'package:aerodry_app/screens/profile/add_new_device_screen.dart';
-import 'package:aerodry_app/screens/profile/connected_device_screen.dart';
-import 'package:aerodry_app/screens/profile/profile_screen.dart';
-import 'package:aerodry_app/screens/profile/search_location_screen.dart';
+import 'package:aerodry_app/screens/weather/weather_screen.dart';
 
 import 'package:flutter/material.dart';
 
@@ -17,7 +14,7 @@ class AeroDryApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'AeroDry',
-      home: const ProfileScreen(),
+      home: const WeatherScreen(),
     );
   }
 }
