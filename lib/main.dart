@@ -1,7 +1,5 @@
-import 'package:aerodry_app/screens/weather/weather_screen.dart';
-import 'package:aerodry_app/screens/Notification/notification_screen.dart';
-
 import 'package:flutter/material.dart';
+import 'package:aerodry_app/screens/dashboard_screen.dart';
 
 void main() {
   runApp(const AeroDryApp());
@@ -10,20 +8,12 @@ void main() {
 class AeroDryApp extends StatelessWidget {
   const AeroDryApp({super.key});
 
- /*@override
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'AeroDry',
-      home: const WeatherScreen(),
-    );
-  }*/
-@override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'AeroDry',
-      home: const NotificationScreen(),
+      home: const DashboardScreen(),
     );
   }
 }

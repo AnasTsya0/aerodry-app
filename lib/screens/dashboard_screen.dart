@@ -1,8 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:aerodry_app/screens/profile/profile_screen.dart';
 import 'package:aerodry_app/screens/weather/weather_screen.dart';
 import 'package:aerodry_app/services/weather_service.dart';
 import 'package:aerodry_app/constants/app_state.dart';
+import 'package:aerodry_app/constants/notification_state.dart';
+import 'package:aerodry_app/screens/manual/manual_screen.dart';
+import 'package:aerodry_app/screens/Notification/notification_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -89,10 +94,19 @@ class _DashboardScreenState extends State<DashboardScreen>
                       const _DryingCard(),
                       const SizedBox(height: 12),
 
-                      const Row(
-                        children: [
-                          Expanded(
-                            child: _MiniCard(
+                      Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ManualScreen(),
+                                ),
+                              );
+                            },
+                            child: const _MiniCard(
                               title: 'Manual Control',
                               imagePath: 'assets/images/manualkeluar.png',
                               label: 'Rack Status',
@@ -100,18 +114,21 @@ class _DashboardScreenState extends State<DashboardScreen>
                               footerText: 'Last opened\n45 minutes ago',
                             ),
                           ),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: _MiniCard(
-                              title: 'Security',
-                              imagePath: 'assets/images/seclogo.png',
-                              label: 'System Status',
-                              value: 'Safe',
-                              footerText: 'Last checked\n1 minute ago',
-                            ),
+                        ),
+
+                        const SizedBox(width: 10),
+
+                        const Expanded(
+                          child: _MiniCard(
+                            title: 'Security',
+                            imagePath: 'assets/images/seclogo.png',
+                            label: 'System Status',
+                            value: 'Safe',
+                            footerText: 'Last checked\n1 minute ago',
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
+                    ),
                     ],
                   ),
                 ),
@@ -130,11 +147,52 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 }
 
-class _Header extends StatelessWidget {
+class _Header extends StatefulWidget {
   const _Header();
 
   @override
+  State<_Header> createState() => _HeaderState();
+}
+
+class _HeaderState extends State<_Header> {
+  late Timer _timer;
+  late DateTime _jakartaTime;
+
+  /// Get current Jakarta time (UTC+7)
+  DateTime _getJakartaTime() {
+    return DateTime.now().toUtc().add(const Duration(hours: 7));
+  }
+
+  /// Greeting based on hour of day
+  String _getGreeting(int hour) {
+    if (hour >= 5 && hour < 12) return 'Good Morning';
+    if (hour >= 12 && hour < 17) return 'Good Afternoon';
+    if (hour >= 17 && hour < 21) return 'Good Evening';
+    return 'Good Night';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _jakartaTime = _getJakartaTime();
+    // Update every second for live clock
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() => _jakartaTime = _getJakartaTime());
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final greeting = _getGreeting(_jakartaTime.hour);
+    final dayName = DateFormat('EEEE').format(_jakartaTime);
+    final timeStr = DateFormat('h:mm a').format(_jakartaTime);
+
     return Row(
       children: [
         Image.asset(
@@ -145,14 +203,14 @@ class _Header extends StatelessWidget {
           color: Colors.black,
         ),
         const SizedBox(width: 7),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Good Morning',
-                style: TextStyle(
+                greeting,
+                style: const TextStyle(
                   fontSize: 15,
                   height: 1,
                   fontWeight: FontWeight.w900,
@@ -160,8 +218,8 @@ class _Header extends StatelessWidget {
                 ),
               ),
               Text(
-                'Monday, 10:00 AM',
-                style: TextStyle(
+                '$dayName, $timeStr',
+                style: const TextStyle(
                   fontSize: 15,
                   height: 1.5,
                   fontWeight: FontWeight.w600,
@@ -171,23 +229,39 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            const Icon(Icons.notifications_none_rounded, size: 30),
-            Positioned(
-              right: 3,
-              top: 3,
-              child: Container(
-                width: 7,
-                height: 7,
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const NotificationScreen(),
               ),
-            ),
-          ],
+            );
+          },
+          child: ValueListenableBuilder<bool>(
+            valueListenable: NotificationState.hasUnread,
+            builder: (context, hasUnread, child) {
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(Icons.notifications_none_rounded, size: 30),
+                  if (hasUnread)
+                    Positioned(
+                      right: 3,
+                      top: 3,
+                      child: Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
         ),
       ],
     );
