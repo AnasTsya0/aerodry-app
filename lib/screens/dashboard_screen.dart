@@ -8,6 +8,7 @@ import 'package:aerodry_app/constants/app_state.dart';
 import 'package:aerodry_app/constants/notification_state.dart';
 import 'package:aerodry_app/screens/manual/manual_screen.dart';
 import 'package:aerodry_app/screens/Notification/notification_screen.dart';
+import 'package:aerodry_app/screens/security/security_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -118,13 +119,23 @@ class _DashboardScreenState extends State<DashboardScreen>
 
                         const SizedBox(width: 10),
 
-                        const Expanded(
-                          child: _MiniCard(
-                            title: 'Security',
-                            imagePath: 'assets/images/seclogo.png',
-                            label: 'System Status',
-                            value: 'Safe',
-                            footerText: 'Last checked\n1 minute ago',
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SecurityScreen(),
+                                ),
+                              );
+                            },
+                            child: const _MiniCard(
+                              title: 'Security',
+                              imagePath: 'assets/images/seclogo.png',
+                              label: 'System Status',
+                              value: 'Safe',
+                              footerText: 'Last checked\n1 minute ago',
+                            ),
                           ),
                         ),
                       ],
