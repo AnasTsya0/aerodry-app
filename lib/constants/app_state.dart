@@ -1,5 +1,6 @@
 // Global app state — shared mutable data across screens.
 // Using simple top-level variables (no provider/riverpod needed for this scope).
+import 'package:flutter/foundation.dart';
 
 // ─── Device model ─────────────────────────────────────────────────────────────
 
@@ -31,3 +32,26 @@ void addToSearchHistory(String location) {
     searchHistory.insert(0, location);
   }
 }
+
+// ─── Rack state (shared between Dashboard ↔ Manual) ─────────────────────────
+
+class RackState {
+  RackState._();
+
+  /// 'Extended' or 'Retracted'
+  static final ValueNotifier<String> rackStatus = ValueNotifier('Extended');
+
+  /// Time of last Move In / Move Out action (null = never)
+  static final ValueNotifier<DateTime?> lastActionTime = ValueNotifier(null);
+
+  static void moveOut() {
+    rackStatus.value = 'Extended';
+    lastActionTime.value = DateTime.now().toUtc().add(const Duration(hours: 7));
+  }
+
+  static void moveIn() {
+    rackStatus.value = 'Retracted';
+    lastActionTime.value = DateTime.now().toUtc().add(const Duration(hours: 7));
+  }
+}
+

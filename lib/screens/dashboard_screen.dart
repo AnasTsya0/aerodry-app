@@ -107,12 +107,29 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 ),
                               );
                             },
-                            child: const _MiniCard(
-                              title: 'Manual Control',
-                              imagePath: 'assets/images/manualkeluar.png',
-                              label: 'Rack Status',
-                              value: 'Extended',
-                              footerText: 'Last opened\n45 minutes ago',
+                            child: ValueListenableBuilder<String>(
+                              valueListenable: RackState.rackStatus,
+                              builder: (context, status, _) {
+                                return ValueListenableBuilder<DateTime?>(
+                                  valueListenable: RackState.lastActionTime,
+                                  builder: (context, lastTime, _) {
+                                    return _MiniCard(
+                                      title: 'Manual Control',
+                                      imagePath: status == 'Extended'
+                                          ? 'assets/images/manualkeluar.png'
+                                          : 'assets/images/manualkeluar.png',
+                                      label: 'Rack Status',
+                                      value: status,
+                                      valueColor: status == 'Extended'
+                                          ? const Color(0xFF4DFF88)
+                                          : const Color(0xFFFFD93D),
+                                      footerText: lastTime != null
+                                          ? 'Last opened\n${_formatTimeAgo(lastTime)}'
+                                          : 'Last opened\n45 minutes ago',
+                                    );
+                                  },
+                                );
+                              },
                             ),
                           ),
                         ),
@@ -156,6 +173,15 @@ class _DashboardScreenState extends State<DashboardScreen>
       ),
     );
   }
+}
+
+String _formatTimeAgo(DateTime time) {
+  final now = DateTime.now().toUtc().add(const Duration(hours: 7));
+  final diff = now.difference(time);
+  if (diff.inSeconds < 60) return 'Just now';
+  if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
+  if (diff.inHours < 24) return '${diff.inHours} hours ago';
+  return '${diff.inDays} days ago';
 }
 
 class _Header extends StatefulWidget {
@@ -813,6 +839,7 @@ class _MiniCard extends StatelessWidget {
   final String label;
   final String value;
   final String footerText;
+  final Color? valueColor;
 
   const _MiniCard({
     required this.title,
@@ -820,6 +847,7 @@ class _MiniCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.footerText,
+    this.valueColor,
   });
 
   @override
@@ -901,10 +929,10 @@ class _MiniCard extends StatelessWidget {
 
                             Text(
                               value,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
-                                color: Color(0xFF4DFF88),
+                                color: valueColor ?? const Color(0xFF4DFF88),
                                 height: 1,
                               ),
                             ),
