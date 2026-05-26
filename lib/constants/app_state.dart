@@ -55,3 +55,33 @@ class RackState {
   }
 }
 
+// ─── Drying state (shared across Dashboard, Manual, ManualDetail) ────────────
+
+class DryingState {
+  DryingState._();
+
+  /// 'Automatic' or 'Manual'
+  static final ValueNotifier<String> mode = ValueNotifier('Automatic');
+
+  /// Last update time shown on drying card (null = never updated)
+  static final ValueNotifier<DateTime?> lastUpdateTime = ValueNotifier(null);
+
+  /// Current weather condition label (e.g. 'Clear Sky', 'Rain', etc.)
+  static final ValueNotifier<String> weatherCondition = ValueNotifier('Clear Sky');
+
+  /// Format the lastUpdateTime as "H : mm"
+  static String get formattedLastUpdate {
+    final t = lastUpdateTime.value;
+    if (t == null) return '9 : 15';
+    final h = t.hour;
+    final m = t.minute.toString().padLeft(2, '0');
+    return '$h : $m';
+  }
+
+  /// Called when manual control process succeeds
+  static void onManualSuccess({required String weatherLabel}) {
+    mode.value = 'Manual';
+    lastUpdateTime.value = DateTime.now().toUtc().add(const Duration(hours: 7));
+    weatherCondition.value = weatherLabel;
+  }
+}

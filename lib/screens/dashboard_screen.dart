@@ -9,6 +9,7 @@ import 'package:aerodry_app/constants/notification_state.dart';
 import 'package:aerodry_app/screens/manual/manual_screen.dart';
 import 'package:aerodry_app/screens/Notification/notification_screen.dart';
 import 'package:aerodry_app/screens/security/security_screen.dart';
+import 'package:aerodry_app/screens/history/history_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -529,11 +530,40 @@ class _ForecastItem extends StatelessWidget {
   }
 }
 
-class _DryingCard extends StatelessWidget {
+class _DryingCard extends StatefulWidget {
   const _DryingCard();
 
   @override
+  State<_DryingCard> createState() => _DryingCardState();
+}
+
+class _DryingCardState extends State<_DryingCard> {
+  @override
+  void initState() {
+    super.initState();
+    DryingState.mode.addListener(_onStateChange);
+    DryingState.lastUpdateTime.addListener(_onStateChange);
+    DryingState.weatherCondition.addListener(_onStateChange);
+  }
+
+  @override
+  void dispose() {
+    DryingState.mode.removeListener(_onStateChange);
+    DryingState.lastUpdateTime.removeListener(_onStateChange);
+    DryingState.weatherCondition.removeListener(_onStateChange);
+    super.dispose();
+  }
+
+  void _onStateChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final mode = DryingState.mode.value;
+    final lastUpdate = DryingState.formattedLastUpdate;
+    final weatherCond = DryingState.weatherCondition.value;
+
     return Container(
       height: 220,
       decoration: BoxDecoration(
@@ -638,24 +668,24 @@ class _DryingCard extends StatelessWidget {
 
                   const SizedBox(width: 10),
 
-                  const Expanded(
+                  Expanded(
                     child: Padding(
-                      padding: EdgeInsets.only(top: 18),
+                      padding: const EdgeInsets.only(top: 18),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _DryingText(
+                          const _DryingText(
                             icon: Icons.timer_outlined,
                             title: 'Drying Duration',
                             value: '35 Minutes',
                           ),
 
-                          SizedBox(height: 10),
+                          const SizedBox(height: 10),
 
                           _DryingText(
                             icon: Icons.settings_outlined,
                             title: 'Mode',
-                            value: 'Automatic',
+                            value: mode,
                           ),
                         ],
                       ),
@@ -684,12 +714,12 @@ class _DryingCard extends StatelessWidget {
                     Expanded(
                       child: Transform.translate(
                         offset: const Offset(-20, 0),
-                        child: const Padding(
-                          padding: EdgeInsets.only(left: 4),
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 4),
                           child: _BottomInfo(
                             icon: Icons.timer_outlined,
                             title: 'Last Update',
-                            value: '9 : 15',
+                            value: lastUpdate,
                           ),
                         ),
                       ),
@@ -706,13 +736,13 @@ class _DryingCard extends StatelessWidget {
                       ),
                     ),
 
-                    const Expanded(
+                    Expanded(
                       child: Padding(
-                        padding: EdgeInsets.only(right: 6),
+                        padding: const EdgeInsets.only(right: 6),
                         child: _BottomInfo(
                           icon: Icons.wb_sunny_outlined,
                           title: 'Weather Condition',
-                          value: 'Clear Sky',
+                          value: weatherCond,
                         ),
                       ),
                     ),
@@ -1023,10 +1053,20 @@ class _BottomNav extends StatelessWidget {
           Positioned(
             left: 60,
             bottom: 26,
-            child: Image.asset(
-              'assets/images/navbarlog.png',
-              width: 35,
-              height: 35,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HistoryScreen(),
+                  ),
+                );
+              },
+              child: Image.asset(
+                'assets/images/navbarlog.png',
+                width: 35,
+                height: 35,
+              ),
             ),
           ),
 
