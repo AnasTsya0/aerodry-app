@@ -115,6 +115,11 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
     } else {
       RackState.moveIn();
     }
+    // ─── Add to Activity Log history ───
+    ActivityLogState.addManualEntry(
+      moveType: widget.moveType,
+      weatherLabel: _weatherLabel,
+    );
     _showSuccessDialog();
   }
 

@@ -9,7 +9,7 @@ import 'package:aerodry_app/constants/notification_state.dart';
 import 'package:aerodry_app/screens/manual/manual_screen.dart';
 import 'package:aerodry_app/screens/Notification/notification_screen.dart';
 import 'package:aerodry_app/screens/security/security_screen.dart';
-import 'package:aerodry_app/screens/history/history_screen.dart';
+import 'package:aerodry_app/screens/activitylog/activitylog_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -1058,7 +1058,7 @@ class _BottomNav extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const HistoryScreen(),
+                    builder: (context) => const ActivityLogScreen(),
                   ),
                 );
               },

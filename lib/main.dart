@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:aerodry_app/screens/dashboard_screen.dart';
 import 'package:aerodry_app/screens/Manual/manual_screen.dart';
-import 'package:aerodry_app/screens/history/history_screen.dart';
+import 'package:aerodry_app/screens/activitylog/activitylog_screen.dart';
 void main() {
   runApp(const AeroDryApp());
 }
@@ -14,7 +14,7 @@ class AeroDryApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'AeroDry',
-      home: const HistoryScreen(),
+      home: const ActivityLogScreen(),
     );
   }
 }
