@@ -14,7 +14,7 @@ class AeroDryApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'AeroDry',
-      home: const ActivityLogScreen(),
+      home: const DashboardScreen(),
     );
   }
 }

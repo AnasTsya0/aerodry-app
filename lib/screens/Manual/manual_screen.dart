@@ -43,9 +43,9 @@ class _ManualScreenState extends State<ManualScreen> {
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: const Icon(
-                      Icons.arrow_back,
-                      color: Color(0xFF2B6BFF),
-                      size: 30,
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Color(0xFF4C75D8),
+                      size: 22,
                     ),
                   ),
 

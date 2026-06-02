@@ -101,6 +101,7 @@ class ActivityLogEntry {
   final String imagePath;    // asset image used as icon
   final String temp;
   final bool isRain;
+  final String location;     // device location
 
   ActivityLogEntry({
     required this.title,
@@ -112,6 +113,7 @@ class ActivityLogEntry {
     required this.imagePath,
     this.temp = '28°',
     this.isRain = false,
+    this.location = 'Jakarta',
   });
 
   String get formattedTime {
@@ -198,6 +200,10 @@ class ActivityLogState {
   static void addManualEntry({required String moveType, required String weatherLabel}) {
     final now = DateTime.now().toUtc().add(const Duration(hours: 7));
     final isOut = moveType == 'out';
+    // Use the active device's location
+    final location = deviceList.isNotEmpty
+        ? deviceList[activeDeviceIndex].location
+        : 'Jakarta';
     final newEntry = ActivityLogEntry(
       title: isOut ? 'Extended Alert' : 'Retracted Alert',
       subtitle1: isOut ? 'Manual Move Out' : 'Manual Move In',
@@ -209,6 +215,7 @@ class ActivityLogState {
           ? 'assets/images/moveoutmanual.png'
           : 'assets/images/moveinmanual.png',
       temp: '28°',
+      location: location,
     );
     final updated = List<ActivityLogEntry>.from(entries.value);
     updated.insert(0, newEntry);

@@ -201,9 +201,10 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
           child: Column(
             children: [
               // ─── Top bar ─────────────────────────────────────────────
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
+
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 22),
                 child: Row(
                   children: [
                     GestureDetector(
@@ -211,32 +212,37 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                       child: const Icon(
                         Icons.arrow_back_ios_new_rounded,
                         size: 20,
-                        color: Color(0xFF8FB4FF),
+                        color: Colors.white,
                       ),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
 
-              const Text(
-                'Activity Log',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
+              const Center(
+                child: Text(
+                  'Activity Log',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
 
               const SizedBox(height: 6),
 
-              const Text(
-                'See all your recent activities and system updates.',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
+              const Center(
+                child: Text(
+                  'See all your recent activities and system updates.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
               ),
 
@@ -247,7 +253,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
                   children: [
-                    // Search input
+                    // Search input with calendar inside
                     Expanded(
                       child: Container(
                         height: 36,
@@ -274,7 +280,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.white,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w600,
                                 ),
                                 cursorColor: Colors.white,
                                 decoration: const InputDecoration(
@@ -293,41 +299,24 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                             if (_searchQuery.isNotEmpty)
                               GestureDetector(
                                 onTap: () => _searchCtrl.clear(),
-                                child: const Icon(Icons.close,
-                                    size: 14, color: Color(0xFFE4F0FF)),
+                                child: const Padding(
+                                  padding: EdgeInsets.only(right: 4),
+                                  child: Icon(Icons.close,
+                                      size: 14, color: Color(0xFFE4F0FF)),
+                                ),
                               ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 8),
-
-                    // Calendar icon
-                    GestureDetector(
-                      onTap: _pickDateRange,
-                      child: Container(
-                        height: 36,
-                        width: 36,
-                        decoration: BoxDecoration(
-                          color: _dateRange != null
-                              ? const Color(0xFF4F6EDB)
-                              : const Color(0xFFEAF4FF),
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.12),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                            // Calendar icon inside search bar
+                            GestureDetector(
+                              onTap: _pickDateRange,
+                              child: Icon(
+                                Icons.calendar_today_rounded,
+                                size: 16,
+                                color: _dateRange != null
+                                    ? Colors.white
+                                    : const Color(0xFFE4F0FF),
+                              ),
                             ),
                           ],
-                        ),
-                        child: Icon(
-                          Icons.calendar_today_rounded,
-                          size: 16,
-                          color: _dateRange != null
-                              ? Colors.white
-                              : const Color(0xFF8C9DAE),
                         ),
                       ),
                     ),
@@ -589,7 +578,8 @@ class _HistoryItem extends StatelessWidget {
         if (entry.title.contains('No Motion')) return const Color(0xFF47EE9D);
         if (entry.title.contains('Extended')) return const Color(0xFF6A9EFF);
         if (entry.title.contains('Retracted')) return const Color(0xFF9EA3A7);
-        return const Color(0xFFFF1E1E);
+        // "Motion Detected" — same green as No Motion instead of red
+        return const Color(0xFF47EE9D);
       case ActivityType.weather:
         return entry.isRain
             ? const Color(0xFF9EA3A7)
@@ -608,7 +598,7 @@ class _HistoryItem extends StatelessWidget {
           return const Color(0xFFB9FFD8);
         }
         if (entry.title.contains('Extended')) { return const Color(0xFFB9FFD8); }
-        return const Color(0xFFFFB5B5);
+        return const Color(0xFFB9FFD8);
       case 'Weather':
         return entry.isRain
             ? const Color(0xFF777777)
@@ -623,11 +613,7 @@ class _HistoryItem extends StatelessWidget {
   Color get _tagTextColor {
     switch (entry.tag) {
       case 'Motion':
-        if (entry.title.contains('No Motion')) {
-          return const Color(0xFF35E986);
-        }
-        if (entry.title.contains('Extended')) { return const Color(0xFF35E986); }
-        return const Color(0xFFFF2F2F);
+        return const Color(0xFF35E986);
       case 'Weather':
         return entry.isRain ? Colors.white : const Color(0xFF5E93FF);
       case 'Manual':
@@ -638,7 +624,8 @@ class _HistoryItem extends StatelessWidget {
   }
 
   Color get _titleColor {
-    if (entry.title.contains('Motion Detected')) return const Color(0xFFFF1E1E);
+    // Only "Motion Detected" (not "No Motion Detected") is red
+    if (entry.title == 'Motion Detected') return const Color(0xFFFF1E1E);
     return const Color(0xFF5B5B5B);
   }
 
@@ -693,7 +680,7 @@ class _HistoryItem extends StatelessWidget {
                     maxLines: 1,
                     style: TextStyle(
                       color: _titleColor,
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -701,7 +688,7 @@ class _HistoryItem extends StatelessWidget {
                     entry.subtitle1,
                     style: const TextStyle(
                       color: Color(0xFFB0B0B0),
-                      fontSize: 11,
+                      fontSize: 12,
                       height: 1.2,
                       fontWeight: FontWeight.w500,
                     ),
@@ -711,7 +698,7 @@ class _HistoryItem extends StatelessWidget {
                       entry.subtitle2,
                       style: const TextStyle(
                         color: Color(0xFFB0B0B0),
-                        fontSize: 11,
+                        fontSize: 12,
                         height: 1.2,
                         fontWeight: FontWeight.w500,
                       ),
@@ -733,7 +720,7 @@ class _HistoryItem extends StatelessWidget {
                         entry.temp,
                         style: const TextStyle(
                           color: Color(0xFF8A8A8A),
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -741,11 +728,11 @@ class _HistoryItem extends StatelessWidget {
                       const Icon(Icons.location_on_outlined,
                           color: Color(0xFF8A8A8A), size: 11),
                       const SizedBox(width: 2),
-                      const Text(
-                        'Jakarta',
-                        style: TextStyle(
+                      Text(
+                        entry.location,
+                        style: const TextStyle(
                           color: Color(0xFF8A8A8A),
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -756,37 +743,42 @@ class _HistoryItem extends StatelessWidget {
             ),
           ),
 
-          // Tag
-          Container(
-            margin: const EdgeInsets.only(top: 25),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: _tagColor,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              entry.tag,
-              style: TextStyle(
-                color: _tagTextColor,
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-
-          // Time
+          // Time + Tag column (tag centered, not too close to time)
           Padding(
-            padding: const EdgeInsets.only(top: 22),
-            child: Text(
-              entry.formattedTime,
-              style: const TextStyle(
-                color: Color(0xFF9A9A9A),
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                height: 1.25,
-              ),
+            padding: const EdgeInsets.only(top: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // Tag
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _tagColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    entry.tag,
+                    style: TextStyle(
+                      color: _tagTextColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                // Time
+                Text(
+                  entry.formattedTime,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Color(0xFF9A9A9A),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    height: 1.25,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
