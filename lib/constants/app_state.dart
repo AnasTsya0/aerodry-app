@@ -70,6 +70,18 @@ class DryingState {
   /// Current weather condition label (e.g. 'Clear Sky', 'Rain', etc.)
   static final ValueNotifier<String> weatherCondition = ValueNotifier('Clear Sky');
 
+  /// Current device location displayed on drying card
+  static final ValueNotifier<String> location = ValueNotifier('--');
+
+  /// Current temperature displayed on drying card
+  static final ValueNotifier<String> temperature = ValueNotifier('--°');
+
+  /// When drying started (move-out time). null = not currently drying.
+  static final ValueNotifier<DateTime?> dryingStartTime = ValueNotifier(null);
+
+  /// Accumulated duration from previous drying sessions (so Move-In doesn't reset progress).
+  static Duration _pausedDuration = Duration.zero;
+
   /// Format the lastUpdateTime as "H : mm"
   static String get formattedLastUpdate {
     final t = lastUpdateTime.value;
@@ -79,11 +91,52 @@ class DryingState {
     return '$h : $m';
   }
 
+  /// Compute drying duration dynamically — paused time preserved across Move-In
+  static String get formattedDryingDuration {
+    final start = dryingStartTime.value;
+    Duration total = _pausedDuration;
+    if (start != null) {
+      final now = DateTime.now().toUtc().add(const Duration(hours: 7));
+      total += now.difference(start);
+    }
+    if (total == Duration.zero) return '-- Minutes';
+    final mins = total.inMinutes;
+    if (mins < 1) return '< 1 Minute';
+    if (mins == 1) return '1 Minute';
+    return '$mins Minutes';
+  }
+
   /// Called when manual control process succeeds
-  static void onManualSuccess({required String weatherLabel}) {
+  static void onManualSuccess({
+    required String moveType,
+    required String weatherLabel,
+    required String deviceLocation,
+    required String deviceTemperature,
+  }) {
     mode.value = 'Manual';
     lastUpdateTime.value = DateTime.now().toUtc().add(const Duration(hours: 7));
     weatherCondition.value = weatherLabel;
+    location.value = deviceLocation;
+    temperature.value = deviceTemperature;
+
+    final now = DateTime.now().toUtc().add(const Duration(hours: 7));
+
+    if (moveType == 'out') {
+      // Resume: start a new segment from now (accumulated time is kept)
+      dryingStartTime.value = now;
+    } else {
+      // Pause: add current running segment to accumulated, stop timer
+      if (dryingStartTime.value != null) {
+        _pausedDuration += now.difference(dryingStartTime.value!);
+      }
+      dryingStartTime.value = null;
+    }
+  }
+
+  /// Reset everything (e.g. when a full new drying session starts from scratch)
+  static void resetDryingSession() {
+    _pausedDuration = Duration.zero;
+    dryingStartTime.value = null;
   }
 }
 
@@ -192,6 +245,16 @@ class ActivityLogState {
         timestamp: base.add(const Duration(hours: 9, minutes: 15)),
         imagePath: 'assets/images/moveoutmanual.png',
         temp: '31°',
+      ),
+      ActivityLogEntry(
+        title: 'Motion Detected',
+        subtitle1: 'Activity Detected In',
+        subtitle2: 'The Backyard Area',
+        tag: 'Motion',
+        type: ActivityType.motion,
+        timestamp: base.add(const Duration(hours: 10, minutes: 5)),
+        imagePath: 'assets/images/motioncard.png',
+        temp: '30°',
       ),
     ];
   }

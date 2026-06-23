@@ -46,12 +46,12 @@ class _ConnectedDevicePageState extends State<ConnectedDevicePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bg,
-      body: SafeArea(
+       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 33),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
-              const SizedBox(height: 30),
+              const SizedBox(height: 40),
 
               // ── App bar ──
               Row(
@@ -66,13 +66,28 @@ class _ConnectedDevicePageState extends State<ConnectedDevicePage> {
                   ),
                   const Expanded(
                     child: Center(
-                      child: Text(
-                        'Connected Device',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: blue,
-                        ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Connected Device',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: blue,
+                              height: 1,
+                            ),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            'Select your active device',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF7A8CA8),
+                              height: 1,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -80,7 +95,8 @@ class _ConnectedDevicePageState extends State<ConnectedDevicePage> {
                 ],
               ),
 
-              const SizedBox(height: 58),
+              const SizedBox(height: 30),
+
 
               const Align(
                 alignment: Alignment.centerLeft,

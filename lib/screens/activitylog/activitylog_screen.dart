@@ -22,7 +22,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
   DateTimeRange? _dateRange;
 
   // ─── Pagination ───────────────────────────────────────────────────────
-  static const int _pageSize = 6;
+  static const int _pageSize = 7;
   int _currentPage = 0;
 
   @override
@@ -211,38 +211,40 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                       onTap: () => Navigator.pop(context),
                       child: const Icon(
                         Icons.arrow_back_ios_new_rounded,
-                        size: 20,
+                        size: 22,
                         color: Colors.white,
                       ),
                     ),
+                    const Expanded(
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Text(
+                              'Activity Log',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                height: 1,
+                              ),
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'See all your recent activities.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                height: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 22),
                   ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              const Center(
-                child: Text(
-                  'Activity Log',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 6),
-
-              const Center(
-                child: Text(
-                  'See all your recent activities and system updates.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                  ),
                 ),
               ),
 
@@ -492,16 +494,8 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            'Showing ${start + 1}–$end of $total entries',
-            style: const TextStyle(
-              fontSize: 10,
-              color: Color(0xFF8E8E8E),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const Spacer(),
           // Prev
           GestureDetector(
             onTap: _currentPage > 0

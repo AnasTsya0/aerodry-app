@@ -41,7 +41,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       backgroundColor: const Color(0xFFEAF4FF),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 37),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
               const SizedBox(height: 30),
@@ -80,7 +80,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 30),
+                  const SizedBox(width: 22),
                 ],
               ),
 

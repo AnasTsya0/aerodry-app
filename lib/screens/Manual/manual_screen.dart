@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:aerodry_app/constants/app_state.dart';
 import 'package:aerodry_app/screens/Manual/manual_screen_detail.dart';
 
@@ -34,7 +35,7 @@ class _ManualScreenState extends State<ManualScreen> {
       backgroundColor: const Color(0xFFF3F7FC),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 40, 20, 30),
+          padding: const EdgeInsets.fromLTRB(24, 40, 24, 30),
           child: Column(
             children: [
 
@@ -51,37 +52,36 @@ class _ManualScreenState extends State<ManualScreen> {
 
                   const Expanded(
                     child: Center(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: 30),
-                        child: Column(
-                          children: [
-                            Text(
-                              'Manual Control',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF0B3B7A),
-                                height: 1,
-                              ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Manual Control',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0B3B7A),
+                              height: 1,
                             ),
+                          ),
 
-                            SizedBox(height: 6),
+                          SizedBox(height: 6),
 
-                            Text(
-                              "Control the clothesline manually",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF7A8CA8),
-                                height: 1,
-                              ),
+                          Text(
+                            "Control the clothesline manually",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF7A8CA8),
+                              height: 1,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
+
+                  const SizedBox(width: 22),
                 ],
               ),
 
@@ -291,19 +291,29 @@ class _DryingCard extends StatefulWidget {
 }
 
 class _DryingCardState extends State<_DryingCard> {
+  Timer? _durationTimer;
+
   @override
   void initState() {
     super.initState();
     DryingState.mode.addListener(_onStateChange);
     DryingState.lastUpdateTime.addListener(_onStateChange);
     DryingState.weatherCondition.addListener(_onStateChange);
+    DryingState.location.addListener(_onStateChange);
+    DryingState.temperature.addListener(_onStateChange);
+    DryingState.dryingStartTime.addListener(_onDryingTimeChange);
+    _startDurationTimer();
   }
 
   @override
   void dispose() {
+    _durationTimer?.cancel();
     DryingState.mode.removeListener(_onStateChange);
     DryingState.lastUpdateTime.removeListener(_onStateChange);
     DryingState.weatherCondition.removeListener(_onStateChange);
+    DryingState.location.removeListener(_onStateChange);
+    DryingState.temperature.removeListener(_onStateChange);
+    DryingState.dryingStartTime.removeListener(_onDryingTimeChange);
     super.dispose();
   }
 
@@ -311,14 +321,31 @@ class _DryingCardState extends State<_DryingCard> {
     if (mounted) setState(() {});
   }
 
+  void _onDryingTimeChange() {
+    _startDurationTimer();
+    if (mounted) setState(() {});
+  }
+
+  void _startDurationTimer() {
+    _durationTimer?.cancel();
+    if (DryingState.dryingStartTime.value != null) {
+      _durationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final mode = DryingState.mode.value;
     final lastUpdate = DryingState.formattedLastUpdate;
     final weatherCond = DryingState.weatherCondition.value;
+    final dryingDuration = DryingState.formattedDryingDuration;
+    final location = DryingState.location.value;
+    final temperature = DryingState.temperature.value;
 
     return Container(
-      height: 220,
+      height: 240,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [ManualScreen.blueDark, ManualScreen.blueLight],
@@ -422,16 +449,22 @@ class _DryingCardState extends State<_DryingCard> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const _DryingText(
+                          _DryingText(
                             icon: Icons.timer_outlined,
                             title: 'Drying Duration',
-                            value: '35 Minutes',
+                            value: dryingDuration,
                           ),
                           const SizedBox(height: 10),
                           _DryingText(
                             icon: Icons.settings_outlined,
                             title: 'Mode',
                             value: mode,
+                          ),
+                          const SizedBox(height: 10),
+                          _DryingText(
+                            icon: Icons.thermostat_outlined,
+                            title: 'Temperature',
+                            value: temperature,
                           ),
                         ],
                       ),
@@ -463,9 +496,9 @@ class _DryingCardState extends State<_DryingCard> {
                         child: Padding(
                           padding: const EdgeInsets.only(left: 4),
                           child: _BottomInfo(
-                            icon: Icons.timer_outlined,
-                            title: 'Last Update',
-                            value: lastUpdate,
+                            icon: Icons.location_on_outlined,
+                            title: 'Location',
+                            value: location,
                           ),
                         ),
                       ),
@@ -486,7 +519,7 @@ class _DryingCardState extends State<_DryingCard> {
                         padding: const EdgeInsets.only(right: 6),
                         child: _BottomInfo(
                           icon: Icons.wb_sunny_outlined,
-                          title: 'Weather Condition',
+                          title: 'Weather',
                           value: weatherCond,
                         ),
                       ),

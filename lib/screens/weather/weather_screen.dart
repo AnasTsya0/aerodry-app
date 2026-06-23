@@ -75,7 +75,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
       backgroundColor: const Color(0xFFEAF3FF),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(30, 30, 30, 24),
+          padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
           child: Column(
             children: [
               // ── App Bar ──────────────────────────────────────────────────
@@ -98,17 +98,33 @@ class _WeatherScreenState extends State<WeatherScreen> {
                   ),
                   const Expanded(
                     child: Center(
-                      child: Text(
-                        'Weather',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0C3B77),
-                        ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Weather',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0B3B7A),
+                              height: 1,
+                            ),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            "Check your area's weather",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF7A8CA8),
+                              height: 1,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 22),
                 ],
               ),
 

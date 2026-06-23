@@ -538,19 +538,29 @@ class _DryingCard extends StatefulWidget {
 }
 
 class _DryingCardState extends State<_DryingCard> {
+  Timer? _durationTimer;
+
   @override
   void initState() {
     super.initState();
     DryingState.mode.addListener(_onStateChange);
     DryingState.lastUpdateTime.addListener(_onStateChange);
     DryingState.weatherCondition.addListener(_onStateChange);
+    DryingState.location.addListener(_onStateChange);
+    DryingState.temperature.addListener(_onStateChange);
+    DryingState.dryingStartTime.addListener(_onDryingTimeChange);
+    _startDurationTimer();
   }
 
   @override
   void dispose() {
+    _durationTimer?.cancel();
     DryingState.mode.removeListener(_onStateChange);
     DryingState.lastUpdateTime.removeListener(_onStateChange);
     DryingState.weatherCondition.removeListener(_onStateChange);
+    DryingState.location.removeListener(_onStateChange);
+    DryingState.temperature.removeListener(_onStateChange);
+    DryingState.dryingStartTime.removeListener(_onDryingTimeChange);
     super.dispose();
   }
 
@@ -558,11 +568,26 @@ class _DryingCardState extends State<_DryingCard> {
     if (mounted) setState(() {});
   }
 
+  void _onDryingTimeChange() {
+    _startDurationTimer();
+    if (mounted) setState(() {});
+  }
+
+  void _startDurationTimer() {
+    _durationTimer?.cancel();
+    if (DryingState.dryingStartTime.value != null) {
+      _durationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final mode = DryingState.mode.value;
     final lastUpdate = DryingState.formattedLastUpdate;
     final weatherCond = DryingState.weatherCondition.value;
+    final dryingDuration = DryingState.formattedDryingDuration;
 
     return Container(
       height: 220,
@@ -674,10 +699,10 @@ class _DryingCardState extends State<_DryingCard> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const _DryingText(
+                          _DryingText(
                             icon: Icons.timer_outlined,
                             title: 'Drying Duration',
-                            value: '35 Minutes',
+                            value: dryingDuration,
                           ),
 
                           const SizedBox(height: 10),

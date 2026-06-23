@@ -36,10 +36,10 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
       backgroundColor: const Color(0xFFEAF4FF),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 37),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
-              const SizedBox(height: 30),
+              const SizedBox(height: 40),
 
               Row(
                 children: [
@@ -53,20 +53,35 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
                   ),
                   const Expanded(
                     child: Center(
-                      child: Text(
-                        'Add New Device',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: darkBlue,
-                        ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Add New Device',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: darkBlue,
+                              height: 1,
+                            ),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            'Register a new clothesline device',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF7A8CA8),
+                              height: 1,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   const SizedBox(width: 22),
                 ],
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
               Container(
                 width: 100,

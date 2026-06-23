@@ -23,7 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: const Color(0xFFEAF3FF),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 33),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
               const SizedBox(height: 30),
