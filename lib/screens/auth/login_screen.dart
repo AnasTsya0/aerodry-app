@@ -94,7 +94,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
           // Save profile info to state & shared preferences
           await UserProfileState.saveToPrefs(newName: dbName, newEmail: email);
-
+          final sanitizedEmail = email.replaceAll('.', '_').replaceAll('@', '_');
+          await prefs.setString('uid', sanitizedEmail);
           if (!mounted) return;
           Navigator.pushReplacement(
             context,

@@ -11,12 +11,8 @@ class SecurityScreen extends StatefulWidget {
 }
 
 class _SecurityScreenState extends State<SecurityScreen> {
-  double sensitivity = 1;
-  String? _selectedMotion;
-  int _actionDelay = 5;
-  bool _showDelayDropdown = false;
-  bool nightMode = true;
-  bool activityNotifications = true;
+  double sensitivity = 1; // 0=Low, 1=Medium, 2=High
+  String? _selectedMotion; // 'alarm' or 'autoRetract'
 
   @override
   void initState() {
@@ -27,26 +23,23 @@ class _SecurityScreenState extends State<SecurityScreen> {
     _loadSettings();
   }
 
-  Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    final autoRetract = prefs.getBool('autoRetract') ?? false;
-    final actionDelay = prefs.getInt('actionDelay') ?? 5;
-    setState(() {
-      _selectedMotion = autoRetract ? 'autoRetract' : 'alarm';
-      _actionDelay = actionDelay;
-      sensitivity = autoRetract ? 2 : 1;
-    });
-    // Sinkronkan ke Firebase (ESP akan membaca node ini)
-    FirebaseService.instance.setSecurityAutoRetract(autoRetract);
-    FirebaseService.instance.updateSecurityActionDelay(actionDelay);
-  }
-
   @override
   void dispose() {
     SecurityState.securityMode.removeListener(_onSecurityChange);
     SecurityState.alarmTriggered.removeListener(_onSecurityChange);
     DryingState.weatherCondition.removeListener(_onSecurityChange);
     super.dispose();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final autoRetract = prefs.getBool('autoRetract') ?? false;
+    setState(() {
+      _selectedMotion = autoRetract ? 'autoRetract' : 'alarm';
+      sensitivity = autoRetract ? 2 : 1;
+    });
+    // Sinkronkan ke Firebase: activityNotifications = true untuk Alarm, false untuk Retract
+    FirebaseService.instance.setActivityNotifications(!autoRetract);
   }
 
   void _onSecurityChange() {
@@ -59,30 +52,19 @@ class _SecurityScreenState extends State<SecurityScreen> {
     return 'Medium';
   }
 
-  void _selectMotion(String option) async {
-    final prefs = await SharedPreferences.getInstance();
-    final autoRetract = option == 'autoRetract';
-    await prefs.setBool('autoRetract', autoRetract);
-    setState(() {
-      _selectedMotion = option;
-      sensitivity = autoRetract ? 2 : 1;
-    });
-    FirebaseService.instance.setSecurityAutoRetract(autoRetract);
-  }
-
-  void _toggleDelayDropdown() {
-    setState(() => _showDelayDropdown = !_showDelayDropdown);
-  }
-
-  void _selectDelay(int seconds) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('actionDelay', seconds);
-    setState(() {
-      _actionDelay = seconds;
-      _showDelayDropdown = false;
-    });
-    FirebaseService.instance.updateSecurityActionDelay(seconds);
-  }
+void _selectMotion(String option) async {
+  print('🔘 _selectMotion dipanggil dengan opsi: $option');
+  final prefs = await SharedPreferences.getInstance();
+  final isAlarmOnly = option == 'alarm';
+  print('📦 isAlarmOnly = $isAlarmOnly');
+  await prefs.setBool('autoRetract', !isAlarmOnly);
+  setState(() {
+    _selectedMotion = option;
+    sensitivity = isAlarmOnly ? 1 : 2;
+  });
+  print('📡 Memanggil setActivityNotifications($isAlarmOnly)');
+  FirebaseService.instance.setActivityNotifications(isAlarmOnly);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -136,9 +118,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   const SizedBox(width: 22),
                 ],
               ),
+
               const SizedBox(height: 24),
 
-              // SECURITY STATUS CARD
+              // SECURITY STATUS CARD (tetap seperti sebelumnya, tanpa perubahan)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
@@ -247,23 +230,34 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
               const SizedBox(height: 28),
 
+              // DETECTION SENSITIVITY
               const Text(
                 'Security Status',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0B3B7A)),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0B3B7A),
+                ),
               ),
               const SizedBox(height: 14),
-
-              // DETECTION SENSITIVITY
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     'Detection Sensitivity',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF1C3657), fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF1C3657),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Text(
                     _sensitivityLabel(),
-                    style: const TextStyle(fontSize: 14, color: Color(0xFF1F5592), fontWeight: FontWeight.w700),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF1F5592),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -280,7 +274,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   min: 0,
                   max: 2,
                   divisions: 2,
-                  onChanged: (value) => setState(() => sensitivity = value),
+                  onChanged: (value) {
+                    setState(() => sensitivity = value);
+                  },
                 ),
               ),
               const Row(
@@ -306,9 +302,14 @@ class _SecurityScreenState extends State<SecurityScreen> {
               ),
 
               const SizedBox(height: 26),
+
               const Text(
                 'When Motion Detected',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0B3B7A)),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0B3B7A),
+                ),
               ),
               const SizedBox(height: 14),
 
@@ -328,148 +329,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 onTap: () => _selectMotion('autoRetract'),
               ),
 
-              const SizedBox(height: 8),
-
-              // ACTION DELAY
-              GestureDetector(
-                onTap: _toggleDelayDropdown,
-                child: Row(
-                  children: [
-                    const Icon(Icons.access_time, size: 22, color: Color(0xFF1C3657)),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Action Delay',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF1C3657),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '$_actionDelay Seconds',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF1F5592),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Icon(
-                      _showDelayDropdown ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                      color: const Color(0xFF1F5592),
-                    ),
-                  ],
-                ),
-              ),
-              if (_showDelayDropdown)
-                Container(
-                  margin: const EdgeInsets.only(left: 34, top: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [1, 3, 5, 10, 15, 30].map((seconds) {
-                      final isSelected = _actionDelay == seconds;
-                      return InkWell(
-                        onTap: () => _selectDelay(seconds),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFFEAF4FF) : Colors.transparent,
-                            border: Border(
-                              bottom: BorderSide(
-                                color: Colors.grey.withOpacity(0.1),
-                                width: 1,
-                              ),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '$seconds Seconds',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: isSelected ? const Color(0xFF1F5592) : const Color(0xFF1C3657),
-                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                ),
-                              ),
-                              if (isSelected)
-                                const Icon(Icons.check, size: 18, color: Color(0xFF1F5592)),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              Padding(
-                padding: const EdgeInsets.only(left: 34, top: 4),
-                child: Text(
-                  'Set a delay before action is taken after motion is detected',
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-              ),
-
-              const SizedBox(height: 26),
-              const Text(
-                'Device Security Settings',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0B3B7A)),
-              ),
-              const SizedBox(height: 14),
-
-              _SecuritySwitch(
-                icon: Icons.nightlight_round,
-                title: 'Night Mode',
-                subtitle: 'Activate security at night or low light conditions',
-                value: nightMode,
-                onChanged: (value) => setState(() => nightMode = value),
-              ),
-              _SecuritySwitch(
-                icon: Icons.chat_bubble_outline,
-                title: 'Activity Notifications',
-                subtitle: 'Receive notifications for detected motion',
-                value: activityNotifications,
-                onChanged: (value) => setState(() => activityNotifications = value),
-              ),
-              _SecuritySwitch(
-                icon: Icons.shield_outlined,
-                title: 'Security Mode',
-                subtitle: 'Enable motion detection and alerts',
-                value: SecurityState.securityMode.value,
-                onChanged: (value) => FirebaseService.instance.setSecurityMode(value),
-              ),
-
-              if (SecurityState.alarmTriggered.value) ...[
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  height: 42,
-                  child: ElevatedButton.icon(
-                    onPressed: () => FirebaseService.instance.resetAlarm(),
-                    icon: const Icon(Icons.notifications_off_outlined, size: 18),
-                    label: const Text('Reset Alarm',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF4444),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-              ],
               const SizedBox(height: 30),
             ],
           ),
@@ -479,8 +338,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
   }
 }
 
-// ─── Widget Pembantu ─────────────────────────────────────────────
-
+// ─── Widget Mini Info ─────────────────────────────────────────────
 class _MiniInfo extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -505,18 +363,15 @@ class _MiniInfo extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 14, color: Colors.white70),
-              ),
-              Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600),
-              ),
+              Text(title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14, color: Colors.white70)),
+              Text(value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -525,6 +380,7 @@ class _MiniInfo extends StatelessWidget {
   }
 }
 
+// ─── Motion Option ────────────────────────────────────────────────
 class _MotionOption extends StatelessWidget {
   final bool selected;
   final IconData icon;
@@ -560,69 +416,18 @@ class _MotionOption extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1C3657)),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(fontSize: 13, color: Colors.grey),
-                  ),
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1C3657))),
+                  Text(subtitle,
+                      style: const TextStyle(fontSize: 13, color: Colors.grey)),
                 ],
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SecuritySwitch extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _SecuritySwitch({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        children: [
-          Icon(icon, size: 22, color: const Color(0xFF1C3657)),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1C3657)),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: Colors.white,
-            activeTrackColor: const Color(0xFF1F5592),
-          ),
-        ],
       ),
     );
   }

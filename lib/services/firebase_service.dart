@@ -5,7 +5,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:aerodry_app/constants/app_state.dart';
 import 'package:aerodry_app/constants/notification_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+Future<String?> getUid() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString('uid');
+}
 /// Singleton service that connects to Firebase Realtime Database,
 /// listens to all nodes in real-time, and provides write methods
 /// for controlling the clothesline hardware.
@@ -442,13 +447,18 @@ class FirebaseService {
   }
 
   // ─── Security settings (for SecurityScreen) ─────────────────────────
-  Future<void> setSecurityAutoRetract(bool value) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    await FirebaseDatabase.instance
-        .ref('JEMURAN/$uid/security_settings')
-        .update({'autoRetract': value});
+Future<void> setActivityNotifications(bool value) async {
+  final uid = await getUid();
+  if (uid == null) {
+    print('❌ UID tidak ditemukan di SharedPreferences');
+    return;
   }
-
+  print('👤 UID dari SharedPreferences: $uid');
+  await FirebaseDatabase.instance
+      .ref('JEMURAN/$uid/security_settings')
+      .update({'activityNotifications': value});
+  print('✅ activityNotifications = $value terkirim');
+}
   Future<void> updateSecurityActionDelay(int seconds) async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     await FirebaseDatabase.instance

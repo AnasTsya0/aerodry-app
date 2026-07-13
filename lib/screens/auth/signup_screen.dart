@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:aerodry_app/constants/app_state.dart';
 import 'package:aerodry_app/screens/dashboard_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -61,6 +62,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         'email': email,
         'password': password,
       });
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('uid', sanitizedEmail);
 
       await UserProfileState.saveToPrefs(newName: name, newEmail: email);
 
