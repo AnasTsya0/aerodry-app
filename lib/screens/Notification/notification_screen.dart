@@ -10,12 +10,20 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  late bool _allRead;
-
   @override
   void initState() {
     super.initState();
-    _allRead = NotificationState.allRead;
+    NotificationState.entries.addListener(_onEntriesChange);
+  }
+
+  @override
+  void dispose() {
+    NotificationState.entries.removeListener(_onEntriesChange);
+    super.dispose();
+  }
+
+  void _onEntriesChange() {
+    if (mounted) setState(() {});
   }
 
   /// Get current Jakarta time (UTC+7)
@@ -24,11 +32,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   void _markAllAsRead() {
-    setState(() {
-      _allRead = true;
-    });
-    // Update global state so dashboard red dot disappears
     NotificationState.markAllAsRead();
+    setState(() {});
   }
 
   @override
@@ -36,6 +41,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
     const darkBlue = Color(0xFF0B3B7A);
     final jakartaTime = _getJakartaTime();
     final dateStr = DateFormat('EEEE MMM dd').format(jakartaTime);
+    final entries = NotificationState.entries.value;
+    final hasEntries = entries.isNotEmpty;
+    final allRead = NotificationState.allRead;
 
     return Scaffold(
       backgroundColor: const Color(0xFFEAF4FF),
@@ -89,14 +97,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
-                  onTap: _allRead ? null : _markAllAsRead,
+                  onTap: allRead ? null : _markAllAsRead,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         Icons.check_circle_outline_rounded,
                         size: 14,
-                        color: _allRead
+                        color: allRead
                             ? Colors.grey
                             : const Color(0xFF4C75D8),
                       ),
@@ -105,7 +113,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         'Mark all as read',
                         style: TextStyle(
                           fontSize: 14,
-                          color: _allRead
+                          color: allRead
                               ? Colors.grey
                               : const Color(0xFF1C4587),
                           fontWeight: FontWeight.w500,
@@ -122,71 +130,30 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      // Show notifications only when not all read
-                      if (!_allRead) ...[
-                        const _TimeLabel(time: 'Just now'),
-                        const _NotificationCard(
-                          title: 'Motion Detected',
-                          subtitle: 'Activity Detected In The Laundry Area',
-                          temperature: '28°',
-                          city: 'Jakarta',
-                          img: 'assets/images/motioncard.png',
-                          iconBg: Color(0xFFFFCACA),
-                          sideColor: Colors.red,
-                          titleColor: Colors.red,
-                          weatherIcon: Icons.wb_sunny_rounded,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        const _TimeLabel(time: '10 min ago'),
-                        const _NotificationCard(
-                          title: 'No Motion Detected',
-                          subtitle: 'Clothesline Area Is Safe',
-                          temperature: '29°',
-                          city: 'Jakarta',
-                          img: 'assets/images/nomotioncard.png',
-                          iconBg: Color(0xFFD3FFE4),
-                          sideColor: Color(0xFF49EA88),
-                          titleColor: Color(0xFF4A4A4A),
-                          weatherIcon: Icons.wb_sunny_rounded,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        const _TimeLabel(time: '1 hour ago'),
-                        const _NotificationCard(
-                          title: 'Retracted Alert',
-                          subtitle: 'Rain Detected',
-                          temperature: '29°',
-                          city: 'Jakarta',
-                          img: 'assets/images/tutupjemurancard.png',
-                          iconBg: Color(0xFFE5E5E5),
-                          sideColor: Colors.grey,
-                          titleColor: Color(0xFF4A4A4A),
-                          weatherIcon: Icons.wb_sunny_rounded,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        const _TimeLabel(time: '5 hour ago'),
-                        const _NotificationCard(
-                          title: 'Extended Alert',
-                          subtitle: 'Heat Warning Retracted',
-                          temperature: '29°',
-                          city: 'Jakarta',
-                          img: 'assets/images/bukajemurancard.png',
-                          iconBg: Color(0xFFDCE6FF),
-                          sideColor: Color(0xFF5B7FFF),
-                          titleColor: Color(0xFF4A4A4A),
-                          weatherIcon: Icons.cloudy_snowing,
-                        ),
-
-                        const SizedBox(height: 34),
+                      if (hasEntries && !allRead) ...[
+                        ...entries.map((entry) => Column(
+                          children: [
+                            _TimeLabel(time: entry.formattedTime),
+                            _NotificationCard(
+                              title: entry.title,
+                              subtitle: entry.subtitle,
+                              temperature: entry.temperature,
+                              city: entry.city,
+                              img: entry.img,
+                              iconBg: entry.iconBg,
+                              sideColor: entry.sideColor,
+                              titleColor: entry.titleColor,
+                              weatherIcon: entry.isRain
+                                  ? Icons.cloudy_snowing
+                                  : Icons.wb_sunny_rounded,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        )),
+                        const SizedBox(height: 18),
                       ],
 
-                      // "You're all caught up" only shows after mark all as read
-                      if (_allRead) ...[
+                      if (!hasEntries || allRead) ...[
                         const SizedBox(height: 40),
                         const _BottomInfoCard(),
                       ],

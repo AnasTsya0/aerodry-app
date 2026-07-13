@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:aerodry_app/constants/app_state.dart';
 import 'package:aerodry_app/services/weather_service.dart';
+import 'package:aerodry_app/services/firebase_service.dart';
 
 class ManualDetailScreen extends StatefulWidget {
   final String moveType; // 'out' or 'in'
@@ -18,14 +19,14 @@ class ManualDetailScreen extends StatefulWidget {
 
 class _ManualDetailScreenState extends State<ManualDetailScreen>
     with TickerProviderStateMixin {
-  // ─── Progress animation ───
-  late AnimationController _progressController;
-  double _progressValue = 0.0;
+  // ─── Progress from Firebase ───
   bool _isProcessing = true;
+  bool _isCancelled = false;
+  bool _obstacleDetected = false;
+  bool _motorStarted = false;
 
   // ─── Slide to cancel ───
   double _dragPosition = 0;
-  bool _isCancelled = false;
   late AnimationController _resetController;
   late Animation<double> _resetAnimation;
 
@@ -40,43 +41,39 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
   void initState() {
     super.initState();
 
+    // Reset progress to 0 locally so that the screen starts displaying 0% immediately
+    DryingState.progress.value = 0;
     // Fetch live weather label in background
     _fetchWeatherLabel();
 
-    // Progress animation: 0 → 100% over 15 seconds
-    _progressController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 15),
-    );
-    _progressController.addListener(() {
-      if (mounted) {
-        setState(() {
-          _progressValue = _progressController.value;
-        });
-      }
-    });
-    _progressController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _onProcessComplete();
-      }
-    });
+    // Listen to Firebase progress and motor status
+    DryingState.progress.addListener(_onProgressChange);
+    DryingState.motorStatus.addListener(_onMotorChange);
+    DryingState.obstacle.addListener(_onObstacleChange);
 
     // Slide reset animation
     _resetController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _resetAnimation =
-        Tween<double>(begin: 0, end: 0).animate(CurvedAnimation(
-      parent: _resetController,
-      curve: Curves.easeOut,
-    ));
+    _resetAnimation = Tween<double>(
+      begin: 0,
+      end: 0,
+    ).animate(CurvedAnimation(parent: _resetController, curve: Curves.easeOut));
     _resetController.addListener(() {
       setState(() => _dragPosition = _resetAnimation.value);
     });
 
-    // Start the process automatically
-    _progressController.forward();
+    // Send the Firebase command to move the hardware
+    _sendCommand();
+  }
+
+  Future<void> _sendCommand() async {
+    if (widget.moveType == 'out') {
+      await FirebaseService.instance.sendMoveOut();
+    } else {
+      await FirebaseService.instance.sendMoveIn();
+    }
   }
 
   Future<void> _fetchWeatherLabel() async {
@@ -101,14 +98,55 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
 
   @override
   void dispose() {
-    _progressController.dispose();
+    DryingState.progress.removeListener(_onProgressChange);
+    DryingState.motorStatus.removeListener(_onMotorChange);
+    DryingState.obstacle.removeListener(_onObstacleChange);
     _resetController.dispose();
     super.dispose();
   }
 
+  void _onProgressChange() {
+    print("Progress = ${DryingState.progress.value}");
+    print("Motor = ${DryingState.motorStatus.value}");
+    if (!mounted || _isCancelled) return;
+
+    setState(() {});
+  }
+
+  void _onMotorChange() {
+  if (!mounted || _isCancelled) return;
+  final motor = DryingState.motorStatus.value;
+  if (motor == 'MOVING_OUT' || motor == 'MOVING_IN') {
+    _motorStarted = true;
+    _isProcessing = true;   // pastikan processing true
+  }
+  if (motor == 'STOP' && _isProcessing && DryingState.progress.value < 100) {
+    // Berhenti tidak sempurna → cancel
+    _isProcessing = false;
+    _isCancelled = true;
+    _showCancelledDialog();
+}
+  if (_motorStarted && motor == 'STOP' && DryingState.progress.value >= 100 && _isProcessing) {
+    _onProcessComplete();
+  }
+}
+
+ void _onObstacleChange() {
+    if (!mounted || _isCancelled) return;
+    if (DryingState.obstacle.value && _isProcessing) {
+        // Kirim perintah stop agar motor berhenti
+        FirebaseService.instance.sendStop();
+        setState(() {
+            _obstacleDetected = true;
+            _isProcessing = false;
+        });
+        _showObstacleDialog();
+    }
+}
+
   // ─── Process completion ───
   void _onProcessComplete() {
-    if (!mounted) return;
+    if (!mounted || !_isProcessing) return;
     setState(() => _isProcessing = false);
     // Get active device location
     final deviceLocation = deviceList.isNotEmpty
@@ -127,23 +165,102 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
     } else {
       RackState.moveIn();
     }
-    // ─── Add to Activity Log history ───
-    ActivityLogState.addManualEntry(
-      moveType: widget.moveType,
-      weatherLabel: _weatherLabel,
-    );
     _showSuccessDialog();
   }
 
-  // ─── Cancel process ───
-  void _onCancelProcess() {
-    _progressController.stop();
+  // ─── Cancel process — just stop immediately ───
+  void _onCancelProcess() async {
+    // Send stop command to Firebase
+    await FirebaseService.instance.sendStop();
+    if (!mounted) return;
     setState(() {
       _isProcessing = false;
       _isCancelled = true;
     });
     // Do NOT update DryingState or RackState on cancel
     _showCancelledDialog();
+  }
+
+  // ─── Obstacle dialog ───
+  void _showObstacleDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFFF8800), Color(0xFFFF6600)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.warning_rounded,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Obstacle Detected',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0B3B7A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'An obstacle was detected in the\nclothesline path. Motor has been\nstopped for safety.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF7A8CA8),
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).pop(false);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF8800),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // ─── Success dialog (process reached 100%) ───
@@ -288,7 +405,9 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(ctx).pop(); // close dialog
-                    Navigator.of(context).pop(false); // cancelled → pop with false
+                    Navigator.of(
+                      context,
+                    ).pop(false); // cancelled → pop with false
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4E6EC4),
@@ -327,8 +446,10 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
   void _onDragUpdate(DragUpdateDetails details, double trackWidth) {
     if (_isCancelled || !_isProcessing) return;
     setState(() {
-      _dragPosition =
-          (_dragPosition + details.delta.dx).clamp(0, _maxDrag(trackWidth));
+      _dragPosition = (_dragPosition + details.delta.dx).clamp(
+        0,
+        _maxDrag(trackWidth),
+      );
     });
   }
 
@@ -342,11 +463,9 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
       _onCancelProcess();
     } else {
       // Animate back to start
-      _resetAnimation =
-          Tween<double>(begin: _dragPosition, end: 0).animate(CurvedAnimation(
-        parent: _resetController,
-        curve: Curves.easeOut,
-      ));
+      _resetAnimation = Tween<double>(begin: _dragPosition, end: 0).animate(
+        CurvedAnimation(parent: _resetController, curve: Curves.easeOut),
+      );
       _resetController
         ..reset()
         ..forward();
@@ -355,7 +474,7 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    final int percent = (_progressValue * 100).round();
+    final int percent = DryingState.progress.value.clamp(0, 100);
     final bool isMoveOut = widget.moveType == 'out';
 
     return Scaffold(
@@ -365,7 +484,6 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
           padding: const EdgeInsets.fromLTRB(24, 40, 24, 30),
           child: Column(
             children: [
-
               // ─── Header ───
               Row(
                 children: [
@@ -415,7 +533,7 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
 
               const SizedBox(height: 30),
 
-              const _DryingCard(),
+              const _DryingStatusCard(),
 
               const SizedBox(height: 30),
 
@@ -469,22 +587,14 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
 
   // ─── Process card with dynamic circular progress ───
   Widget _buildProcessCard(int percent, bool isMoveOut) {
-    final String processTitle =
-        isMoveOut ? 'Move Out Process' : 'Move In Process';
+    final String processTitle = isMoveOut
+        ? 'Move Out Process'
+        : 'Move In Process';
     final String processMessage = _isProcessing
         ? (isMoveOut
-            ? 'Please wait while the clothesline is moving out'
-            : 'Please wait while the clothesline is moving in')
+              ? 'Please wait while the clothesline is moving out'
+              : 'Please wait while the clothesline is moving in')
         : 'Process completed successfully';
-
-    // Dot position on circular arc
-    final double angle = -math.pi / 2 + 2 * math.pi * _progressValue;
-    const double arcRadius = 67.5;
-    const double cx = 75.0;
-    const double cy = 75.0;
-    const double dotR = 9.0;
-    final double dotX = cx + arcRadius * math.cos(angle) - dotR;
-    final double dotY = cy + arcRadius * math.sin(angle) - dotR;
 
     return Container(
       width: double.infinity,
@@ -514,84 +624,108 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
           SizedBox(
             width: 150,
             height: 150,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                // Circular progress
-                SizedBox(
-                  width: 145,
-                  height: 145,
-                  child: CircularProgressIndicator(
-                    value: _progressValue,
-                    strokeWidth: 10,
-                    backgroundColor: const Color(0xFFE6EDF7),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Color(0xFF4B8FFF),
-                    ),
-                    strokeCap: StrokeCap.round,
-                  ),
-                ),
-                // Tracking dot on the arc
-                if (_progressValue > 0.01)
-                  Positioned(
-                    left: dotX,
-                    top: dotY,
-                    child: Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF64A8FF),
-                          width: 4,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF4B8FFF).withOpacity(0.3),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                // Center text
-                Column(
-                  mainAxisSize: MainAxisSize.min,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: percent / 100.0),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+              builder: (context, value, _) {
+                // Dot position on circular arc based on interpolated value
+                final double angle = -math.pi / 2 + 2 * math.pi * value;
+                const double arcRadius = 67.5;
+                const double cx = 75.0;
+                const double cy = 75.0;
+                const double dotR = 9.0;
+                final double dotX = cx + arcRadius * math.cos(angle) - dotR;
+                final double dotY = cy + arcRadius * math.sin(angle) - dotR;
+
+                return Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
                   children: [
-                    Text(
-                      '$percent',
-                      style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF1976D2),
-                        height: 1,
+                    // Circular progress with smooth animation
+                    SizedBox(
+                      width: 145,
+                      height: 145,
+                      child: CircularProgressIndicator(
+                        value: value,
+                        strokeWidth: 10,
+                        backgroundColor: const Color(0xFFE6EDF7),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _obstacleDetected
+                              ? const Color(0xFFFF8800)
+                              : const Color(0xFF4B8FFF),
+                        ),
+                        strokeCap: StrokeCap.round,
                       ),
                     ),
-                    const Text(
-                      '%',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1976D2),
+                    // Tracking dot on the arc
+                    if (value > 0.01)
+                      Positioned(
+                        left: dotX,
+                        top: dotY,
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _obstacleDetected
+                                  ? const Color(0xFFFF8800)
+                                  : const Color(0xFF64A8FF),
+                              width: 4,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF4B8FFF).withOpacity(0.3),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _isProcessing ? 'In Progress' : 'Completed',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: _isProcessing
-                            ? const Color(0xFF1976D2)
-                            : const Color(0xFF10B981),
-                      ),
+                    // Center text
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${(value * 100).toInt()}',
+                          style: const TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF1976D2),
+                            height: 1,
+                          ),
+                        ),
+                        const Text(
+                          '%',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1976D2),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _obstacleDetected
+                              ? 'Obstacle!'
+                              : (_isProcessing ? 'In Progress' : 'Completed'),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: _obstacleDetected
+                                ? const Color(0xFFFF8800)
+                                : (_isProcessing
+                                      ? const Color(0xFF1976D2)
+                                      : const Color(0xFF10B981)),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ],
+                );
+              },
             ),
           ),
           const SizedBox(height: 18),
@@ -599,16 +733,22 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFFD9ECFF),
+              color: _obstacleDetected
+                  ? const Color(0xFFFFE4C4)
+                  : const Color(0xFFD9ECFF),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              processMessage,
+              _obstacleDetected
+                  ? 'Obstacle detected — motor stopped for safety'
+                  : processMessage,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF333333),
+                color: _obstacleDetected
+                    ? const Color(0xFFCC6600)
+                    : const Color(0xFF333333),
               ),
             ),
           ),
@@ -686,10 +826,7 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
                       const SizedBox(height: 2),
                       Text(
                         "Slide to the right to cancel",
-                        style: TextStyle(
-                          color: subtitleColor,
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: subtitleColor, fontSize: 13),
                       ),
                     ],
                   ),
@@ -708,8 +845,7 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
               Positioned(
                 left: _trackHPadding + _dragPosition,
                 child: GestureDetector(
-                  onHorizontalDragUpdate: (d) =>
-                      _onDragUpdate(d, trackWidth),
+                  onHorizontalDragUpdate: (d) => _onDragUpdate(d, trackWidth),
                   onHorizontalDragEnd: (_) => _onDragEnd(trackWidth),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
@@ -742,38 +878,34 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
   }
 }
 
-// ─── Drying Card ───
-class _DryingCard extends StatefulWidget {
-  const _DryingCard();
+// ─── Drying Status Card (matches Dashboard) ───
+class _DryingStatusCard extends StatefulWidget {
+  const _DryingStatusCard();
 
   @override
-  State<_DryingCard> createState() => _DryingCardState();
+  State<_DryingStatusCard> createState() => _DryingStatusCardState();
 }
 
-class _DryingCardState extends State<_DryingCard> {
-  Timer? _durationTimer;
-
+class _DryingStatusCardState extends State<_DryingStatusCard> {
   @override
   void initState() {
     super.initState();
-    DryingState.mode.addListener(_onStateChange);
+    DryingState.displayMode.addListener(_onStateChange);
     DryingState.lastUpdateTime.addListener(_onStateChange);
     DryingState.weatherCondition.addListener(_onStateChange);
-    DryingState.location.addListener(_onStateChange);
-    DryingState.temperature.addListener(_onStateChange);
-    DryingState.dryingStartTime.addListener(_onDryingTimeChange);
-    _startDurationTimer();
+    DryingState.dryingDurationMinutes.addListener(_onStateChange);
+    DryingState.dryingStartTime.addListener(_onStateChange);
+    DryingState.online.addListener(_onStateChange);
   }
 
   @override
   void dispose() {
-    _durationTimer?.cancel();
-    DryingState.mode.removeListener(_onStateChange);
+    DryingState.displayMode.removeListener(_onStateChange);
     DryingState.lastUpdateTime.removeListener(_onStateChange);
     DryingState.weatherCondition.removeListener(_onStateChange);
-    DryingState.location.removeListener(_onStateChange);
-    DryingState.temperature.removeListener(_onStateChange);
-    DryingState.dryingStartTime.removeListener(_onDryingTimeChange);
+    DryingState.dryingDurationMinutes.removeListener(_onStateChange);
+    DryingState.dryingStartTime.removeListener(_onStateChange);
+    DryingState.online.removeListener(_onStateChange);
     super.dispose();
   }
 
@@ -781,30 +913,14 @@ class _DryingCardState extends State<_DryingCard> {
     if (mounted) setState(() {});
   }
 
-  void _onDryingTimeChange() {
-    _startDurationTimer();
-    if (mounted) setState(() {});
-  }
-
-  void _startDurationTimer() {
-    _durationTimer?.cancel();
-    if (DryingState.dryingStartTime.value != null) {
-      _durationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-        if (mounted) setState(() {});
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final mode = DryingState.mode.value;
+    final mode = DryingState.displayMode.value;
     final lastUpdate = DryingState.formattedLastUpdate;
     final weatherCond = DryingState.weatherCondition.value;
     final dryingDuration = DryingState.formattedDryingDuration;
-    final location = DryingState.location.value;
-    final temperature = DryingState.temperature.value;
     return Container(
-      height: 240,
+      height: 220,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [ManualDetailScreen.blueDark, ManualDetailScreen.blueLight],
@@ -848,23 +964,29 @@ class _DryingCardState extends State<_DryingCard> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 3, 55, 30),
+                      color: DryingState.online.value
+                          ? const Color.fromARGB(255, 3, 55, 30)
+                          : const Color.fromARGB(255, 60, 60, 60),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         CircleAvatar(
                           radius: 2,
-                          backgroundColor: Color(0xFF42EF7D),
+                          backgroundColor: DryingState.online.value
+                              ? const Color(0xFF42EF7D)
+                              : const Color(0xFF9E9E9E),
                         ),
-                        SizedBox(width: 5),
+                        const SizedBox(width: 5),
                         Text(
-                          'Online',
+                          DryingState.online.value ? 'Online' : 'Offline',
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w900,
-                            color: Color.fromARGB(255, 4, 170, 57),
+                            color: DryingState.online.value
+                                ? const Color.fromARGB(255, 4, 170, 57)
+                                : const Color(0xFF9E9E9E),
                           ),
                         ),
                       ],
@@ -919,12 +1041,6 @@ class _DryingCardState extends State<_DryingCard> {
                             title: 'Mode',
                             value: mode,
                           ),
-                          const SizedBox(height: 10),
-                          _DryingText(
-                            icon: Icons.thermostat_outlined,
-                            title: 'Temperature',
-                            value: temperature,
-                          ),
                         ],
                       ),
                     ),
@@ -955,9 +1071,9 @@ class _DryingCardState extends State<_DryingCard> {
                         child: Padding(
                           padding: const EdgeInsets.only(left: 4),
                           child: _BottomInfo(
-                            icon: Icons.location_on_outlined,
-                            title: 'Location',
-                            value: location,
+                            icon: Icons.timer_outlined,
+                            title: 'Last Update',
+                            value: lastUpdate,
                           ),
                         ),
                       ),
@@ -978,7 +1094,7 @@ class _DryingCardState extends State<_DryingCard> {
                         padding: const EdgeInsets.only(right: 6),
                         child: _BottomInfo(
                           icon: Icons.wb_sunny_outlined,
-                          title: 'Weather',
+                          title: 'Weather Condition',
                           value: weatherCond,
                         ),
                       ),

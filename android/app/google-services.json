@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "757453389187",
+    "firebase_url": "https://aerodry-59d64-default-rtdb.firebaseio.com",
+    "project_id": "aerodry-59d64",
+    "storage_bucket": "aerodry-59d64.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:757453389187:android:088dae6b5522ecdf140ab6",
+        "android_client_info": {
+          "package_name": "com.example.aerodry_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDNssiF-KVVy9uWnLSpo63I7DoKtPVsd7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

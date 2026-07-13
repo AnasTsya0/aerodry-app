@@ -570,18 +570,17 @@ class _HistoryItem extends StatelessWidget {
     switch (entry.type) {
       case ActivityType.motion:
         if (entry.title.contains('No Motion')) return const Color(0xFF47EE9D);
-        if (entry.title.contains('Extended')) return const Color(0xFF6A9EFF);
-        if (entry.title.contains('Retracted')) return const Color(0xFF9EA3A7);
-        // "Motion Detected" — same green as No Motion instead of red
-        return const Color(0xFF47EE9D);
+        // Motion detected is red
+        return const Color(0xFFFF4444);
       case ActivityType.weather:
+        // isRain = true → gray (retracted/rain/dark)
+        // isRain = false → blue (extended/bright/heat warning)
         return entry.isRain
             ? const Color(0xFF9EA3A7)
             : const Color(0xFF6A9EFF);
       case ActivityType.manual:
-        return entry.title.contains('Extended')
-            ? const Color(0xFF6A9EFF)
-            : const Color(0xFF9EA3A7);
+        // Manual line is orange
+        return const Color(0xFFFF9F0A);
     }
   }
 
@@ -589,16 +588,17 @@ class _HistoryItem extends StatelessWidget {
     switch (entry.tag) {
       case 'Motion':
         if (entry.title.contains('No Motion')) {
-          return const Color(0xFFB9FFD8);
+          return const Color(0xFFB9FFD8); // soft green
         }
-        if (entry.title.contains('Extended')) { return const Color(0xFFB9FFD8); }
-        return const Color(0xFFB9FFD8);
+        return const Color(0xFFFFCACA); // soft red
       case 'Weather':
+        // isRain true → gray (retracted/rain/dark)
+        // isRain false → blue (extended/bright/heat)
         return entry.isRain
             ? const Color(0xFF777777)
             : const Color(0xFFC6D7FF);
       case 'Manual':
-        return const Color(0xFFFFE8B0);
+        return const Color(0xFFFFECC8); // soft orange
       default:
         return const Color(0xFFE3E6E7);
     }
@@ -607,20 +607,55 @@ class _HistoryItem extends StatelessWidget {
   Color get _tagTextColor {
     switch (entry.tag) {
       case 'Motion':
-        return const Color(0xFF35E986);
+        if (entry.title.contains('No Motion')) {
+          return const Color(0xFF35E986); // green
+        }
+        return const Color(0xFFFF4444); // red
       case 'Weather':
         return entry.isRain ? Colors.white : const Color(0xFF5E93FF);
       case 'Manual':
-        return const Color(0xFFB87700);
+        return const Color(0xFFFF9F0A); // orange
       default:
         return const Color(0xFF9EA3A7);
     }
   }
 
   Color get _titleColor {
-    // Only "Motion Detected" (not "No Motion Detected") is red
-    if (entry.title == 'Motion Detected') return const Color(0xFFFF1E1E);
+    // Motion Detected → red
+    if (entry.title == 'Motion Detected') {
+      return const Color(0xFFFF1E1E);
+    }
+    // No Motion Detected → green
+    if (entry.title.contains('No Motion')) {
+      return const Color(0xFF35E986);
+    }
+    // Manual titles → orange
+    if (entry.tag == 'Manual') {
+      return const Color(0xFFFF9F0A);
+    }
+    // Weather extended (LDR bright light) → blue
+    if (entry.tag == 'Weather' && !entry.isRain) {
+      return const Color(0xFF5E93FF);
+    }
+    // Weather retracted (rain / no light) → gray
+    if (entry.tag == 'Weather' && entry.isRain) {
+      return const Color(0xFF9EA3A7);
+    }
     return const Color(0xFF5B5B5B);
+  }
+
+  Color get _iconBgColor {
+    switch (entry.type) {
+      case ActivityType.manual:
+        return const Color(0xFFFFE8C8); // soft orange
+      case ActivityType.motion:
+        if (entry.title.contains('No Motion')) return const Color(0xFFD4FFE7);
+        return const Color(0xFFFFE0E0); // soft red
+      case ActivityType.weather:
+        return entry.isRain
+            ? const Color(0xFFE5E5E5) // soft grey
+            : const Color(0xFFDCE7FF); // soft blue
+    }
   }
 
   @override
@@ -647,7 +682,7 @@ class _HistoryItem extends StatelessWidget {
             height: 49,
             margin: const EdgeInsets.only(top: 10),
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.08),
+              color: _iconBgColor,
               shape: BoxShape.circle,
             ),
             child: ClipOval(

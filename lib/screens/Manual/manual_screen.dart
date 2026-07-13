@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
 import 'package:aerodry_app/constants/app_state.dart';
 import 'package:aerodry_app/screens/Manual/manual_screen_detail.dart';
 
@@ -16,19 +15,6 @@ class ManualScreen extends StatefulWidget {
 class _ManualScreenState extends State<ManualScreen> {
   String selectedMove = '';
 
-  Future<void> _navigateToDetail(String moveType) async {
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ManualDetailScreen(moveType: moveType),
-      ),
-    );
-    // If cancelled or dismissed, reset selection
-    if (result != true && mounted) {
-      setState(() => selectedMove = '');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,7 +24,6 @@ class _ManualScreenState extends State<ManualScreen> {
           padding: const EdgeInsets.fromLTRB(24, 40, 24, 30),
           child: Column(
             children: [
-
               Row(
                 children: [
                   GestureDetector(
@@ -49,7 +34,6 @@ class _ManualScreenState extends State<ManualScreen> {
                       size: 22,
                     ),
                   ),
-
                   const Expanded(
                     child: Center(
                       child: Column(
@@ -63,9 +47,7 @@ class _ManualScreenState extends State<ManualScreen> {
                               height: 1,
                             ),
                           ),
-
                           SizedBox(height: 6),
-
                           Text(
                             "Control the clothesline manually",
                             textAlign: TextAlign.center,
@@ -80,23 +62,16 @@ class _ManualScreenState extends State<ManualScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 22),
                 ],
               ),
-
               const SizedBox(height: 30),
-
               const _DryingCard(),
-
               const SizedBox(height: 35),
-
               Row(
                 children: [
                   Expanded(
-                    child: Divider(
-                      color: Colors.blueGrey.withOpacity(0.2),
-                    ),
+                    child: Divider(color: Colors.blueGrey.withOpacity(0.2)),
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 12),
@@ -110,57 +85,108 @@ class _ManualScreenState extends State<ManualScreen> {
                     ),
                   ),
                   Expanded(
-                    child: Divider(
-                      color: Colors.blueGrey.withOpacity(0.2),
-                    ),
+                    child: Divider(color: Colors.blueGrey.withOpacity(0.2)),
                   ),
                 ],
               ),
-
               const SizedBox(height: 28),
+              ValueListenableBuilder<String>(
+                valueListenable: DryingState.rackPosition,
+                builder: (context, rackPos, _) {
+                  final motorStatus = DryingState.motorStatus.value;
+                  final isMoving = motorStatus != 'STOP';
+                  final isOut = rackPos == 'OUT';
+                  final isIn = rackPos == 'IN';
+                  final isStopped = rackPos == 'STOPPED';
 
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() => selectedMove = 'out');
-                        _navigateToDetail('out');
-                      },
-                      child: _controlButton(
-                        image: 'assets/images/moveoutmanual.png',
-                        title: "Move Out",
-                        subtitle: "Move the clothesline\nout for drying",
-                        bgColor: const Color(0xFFDCE7FF),
-                        isSelected: selectedMove == 'out',
-                        isMoveIn: false,
+                  bool moveOutActive, moveInActive;
+
+                  if (isStopped && DryingState.lastManualDirection != null) {
+                    moveOutActive =
+                        (DryingState.lastManualDirection == 'out') && !isMoving;
+                    moveInActive =
+                        (DryingState.lastManualDirection == 'in') && !isMoving;
+                  } else {
+                    moveOutActive = !isOut && !isMoving;
+                    moveInActive = !isIn && !isMoving;
+                  }
+
+                  return Row(
+                    children: [
+                      // ── Move Out ──
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: moveOutActive
+                              ? () async {
+                                  DryingState.lastManualDirection = 'out';
+                                  setState(() => selectedMove = 'out');
+                                  final result = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => ManualDetailScreen(
+                                            moveType: 'out')),
+                                  );
+                                  if (result == true) {
+                                    DryingState.lastManualDirection = null;
+                                  }
+                                  if (mounted) setState(() => selectedMove = '');
+                                }
+                              : null,
+                          child: Opacity(
+                            opacity: moveOutActive ? 1.0 : 0.5,
+                            child: _controlButton(
+                              image: 'assets/images/moveoutmanual.png',
+                              title: "Move Out",
+                              subtitle: isOut
+                                  ? "Clothesline is\nalready outside"
+                                  : "Move the clothesline\nout for drying",
+                              bgColor: const Color(0xFFDCE7FF),
+                              isSelected: selectedMove == 'out',
+                              isMoveIn: false,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 14),
-
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() => selectedMove = 'in');
-                        _navigateToDetail('in');
-                      },
-                      child: _controlButton(
-                        image: 'assets/images/moveinmanual.png',
-                        title: "Move In",
-                        subtitle: "Move the clothesline\nin after drying",
-                        bgColor: const Color(0xFFE9EDF3),
-                        isSelected: selectedMove == 'in',
-                        isMoveIn: true,
+                      const SizedBox(width: 14),
+                      // ── Move In ──
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: moveInActive
+                              ? () async {
+                                  DryingState.lastManualDirection = 'in';
+                                  setState(() => selectedMove = 'in');
+                                  final result = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => ManualDetailScreen(
+                                            moveType: 'in')),
+                                  );
+                                  if (result == true) {
+                                    DryingState.lastManualDirection = null;
+                                  }
+                                  if (mounted) setState(() => selectedMove = '');
+                                }
+                              : null,
+                          child: Opacity(
+                            opacity: moveInActive ? 1.0 : 0.5,
+                            child: _controlButton(
+                              image: 'assets/images/moveinmanual.png',
+                              title: "Move In",
+                              subtitle: isIn
+                                  ? "Clothesline is\nalready inside"
+                                  : "Move the clothesline\nin after drying",
+                              bgColor: const Color(0xFFE9EDF3),
+                              isSelected: selectedMove == 'in',
+                              isMoveIn: true,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
-
               const SizedBox(height: 30),
-
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -209,10 +235,8 @@ class _ManualScreenState extends State<ManualScreen> {
   }) {
     final Color activeBg =
         isMoveIn ? const Color(0xFFD7DCDF) : const Color(0xFFCFE0FF);
-
     final Color activeBorder =
         isMoveIn ? const Color(0xFF9EA8AD) : const Color(0xFF6FA0FF);
-
     final Color circleColor = isSelected
         ? (isMoveIn ? const Color(0xFFC2C8CB) : const Color(0xFFB8CDFF))
         : bgColor;
@@ -249,9 +273,7 @@ class _ManualScreenState extends State<ManualScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 10),
-
           Text(
             title,
             textAlign: TextAlign.center,
@@ -262,9 +284,7 @@ class _ManualScreenState extends State<ManualScreen> {
               height: 1,
             ),
           ),
-
           const SizedBox(height: 4),
-
           Text(
             subtitle,
             textAlign: TextAlign.center,
@@ -291,29 +311,25 @@ class _DryingCard extends StatefulWidget {
 }
 
 class _DryingCardState extends State<_DryingCard> {
-  Timer? _durationTimer;
-
   @override
   void initState() {
     super.initState();
-    DryingState.mode.addListener(_onStateChange);
+    DryingState.displayMode.addListener(_onStateChange);
     DryingState.lastUpdateTime.addListener(_onStateChange);
     DryingState.weatherCondition.addListener(_onStateChange);
-    DryingState.location.addListener(_onStateChange);
-    DryingState.temperature.addListener(_onStateChange);
-    DryingState.dryingStartTime.addListener(_onDryingTimeChange);
-    _startDurationTimer();
+    DryingState.dryingDurationMinutes.addListener(_onStateChange);
+    DryingState.dryingStartTime.addListener(_onStateChange);
+    DryingState.online.addListener(_onStateChange);
   }
 
   @override
   void dispose() {
-    _durationTimer?.cancel();
-    DryingState.mode.removeListener(_onStateChange);
+    DryingState.displayMode.removeListener(_onStateChange);
     DryingState.lastUpdateTime.removeListener(_onStateChange);
     DryingState.weatherCondition.removeListener(_onStateChange);
-    DryingState.location.removeListener(_onStateChange);
-    DryingState.temperature.removeListener(_onStateChange);
-    DryingState.dryingStartTime.removeListener(_onDryingTimeChange);
+    DryingState.dryingDurationMinutes.removeListener(_onStateChange);
+    DryingState.dryingStartTime.removeListener(_onStateChange);
+    DryingState.online.removeListener(_onStateChange);
     super.dispose();
   }
 
@@ -321,31 +337,15 @@ class _DryingCardState extends State<_DryingCard> {
     if (mounted) setState(() {});
   }
 
-  void _onDryingTimeChange() {
-    _startDurationTimer();
-    if (mounted) setState(() {});
-  }
-
-  void _startDurationTimer() {
-    _durationTimer?.cancel();
-    if (DryingState.dryingStartTime.value != null) {
-      _durationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-        if (mounted) setState(() {});
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final mode = DryingState.mode.value;
+    final mode = DryingState.displayMode.value;
     final lastUpdate = DryingState.formattedLastUpdate;
     final weatherCond = DryingState.weatherCondition.value;
     final dryingDuration = DryingState.formattedDryingDuration;
-    final location = DryingState.location.value;
-    final temperature = DryingState.temperature.value;
 
     return Container(
-      height: 240,
+      height: 220,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [ManualScreen.blueDark, ManualScreen.blueLight],
@@ -389,23 +389,29 @@ class _DryingCardState extends State<_DryingCard> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: Color.fromARGB(255, 3, 55, 30),
+                      color: DryingState.online.value
+                          ? const Color.fromARGB(255, 3, 55, 30)
+                          : const Color.fromARGB(255, 60, 60, 60),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         CircleAvatar(
                           radius: 2,
-                          backgroundColor: Color(0xFF42EF7D),
+                          backgroundColor: DryingState.online.value
+                              ? const Color(0xFF42EF7D)
+                              : const Color(0xFF9E9E9E),
                         ),
-                        SizedBox(width: 5),
+                        const SizedBox(width: 5),
                         Text(
-                          'Online',
+                          DryingState.online.value ? 'Online' : 'Offline',
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w900,
-                            color: Color.fromARGB(255, 4, 170, 57),
+                            color: DryingState.online.value
+                                ? const Color.fromARGB(255, 4, 170, 57)
+                                : const Color(0xFF9E9E9E),
                           ),
                         ),
                       ],
@@ -460,12 +466,6 @@ class _DryingCardState extends State<_DryingCard> {
                             title: 'Mode',
                             value: mode,
                           ),
-                          const SizedBox(height: 10),
-                          _DryingText(
-                            icon: Icons.thermostat_outlined,
-                            title: 'Temperature',
-                            value: temperature,
-                          ),
                         ],
                       ),
                     ),
@@ -496,9 +496,9 @@ class _DryingCardState extends State<_DryingCard> {
                         child: Padding(
                           padding: const EdgeInsets.only(left: 4),
                           child: _BottomInfo(
-                            icon: Icons.location_on_outlined,
-                            title: 'Location',
-                            value: location,
+                            icon: Icons.timer_outlined,
+                            title: 'Last Update',
+                            value: lastUpdate,
                           ),
                         ),
                       ),
@@ -519,7 +519,7 @@ class _DryingCardState extends State<_DryingCard> {
                         padding: const EdgeInsets.only(right: 6),
                         child: _BottomInfo(
                           icon: Icons.wb_sunny_outlined,
-                          title: 'Weather',
+                          title: 'Weather Condition',
                           value: weatherCond,
                         ),
                       ),

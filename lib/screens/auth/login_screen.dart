@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:aerodry_app/constants/app_state.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 import '../dashboard_screen.dart';
@@ -38,6 +40,12 @@ class _LoginScreenState extends State<LoginScreen> {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
+    setState(() {
+      isLoginError = false;
+      errorMessage = "";
+    });
+
+    // 1. Check for admin credentials
     if (email == "admin@gmail.com" && password == "123456") {
       final prefs = await SharedPreferences.getInstance();
 
@@ -51,19 +59,60 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.remove('savedPassword');
       }
 
-      setState(() {
-        isLoginError = false;
-        errorMessage = "";
-      });
+      await UserProfileState.saveToPrefs(newName: 'Admin Aero Dry', newEmail: email);
 
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const DashboardScreen()),
       );
-    } else {
+      return;
+    }
+
+    // 2. Check in Firebase Realtime Database
+    try {
+      final sanitizedEmail = email.replaceAll('.', '_').replaceAll('@', '_');
+      final snapshot = await FirebaseDatabase.instance.ref('JEMURAN/users/$sanitizedEmail').get();
+
+      if (snapshot.exists) {
+        final userData = Map<String, dynamic>.from(snapshot.value as Map);
+        final dbPassword = userData['password'] as String?;
+        final dbName = userData['fullName'] as String? ?? 'User';
+
+        if (dbPassword == password) {
+          final prefs = await SharedPreferences.getInstance();
+
+          if (rememberMe) {
+            await prefs.setBool('rememberMe', true);
+            await prefs.setString('savedEmail', email);
+            await prefs.setString('savedPassword', password);
+          } else {
+            await prefs.setBool('rememberMe', false);
+            await prefs.remove('savedEmail');
+            await prefs.remove('savedPassword');
+          }
+
+          // Save profile info to state & shared preferences
+          await UserProfileState.saveToPrefs(newName: dbName, newEmail: email);
+
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const DashboardScreen()),
+          );
+          return;
+        }
+      }
+
+      // If it reaches here, credentials did not match or user doesn't exist
       setState(() {
         isLoginError = true;
         errorMessage = "Incorrect email or password";
+      });
+    } catch (e) {
+      setState(() {
+        isLoginError = true;
+        errorMessage = "Login failed: $e";
       });
     }
   }

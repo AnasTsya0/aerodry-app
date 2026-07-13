@@ -13,6 +13,24 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   @override
+  void initState() {
+    super.initState();
+    UserProfileState.name.addListener(_onProfileChange);
+    UserProfileState.email.addListener(_onProfileChange);
+  }
+
+  @override
+  void dispose() {
+    UserProfileState.name.removeListener(_onProfileChange);
+    UserProfileState.email.removeListener(_onProfileChange);
+    super.dispose();
+  }
+
+  void _onProfileChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     final hasDevice = deviceList.isNotEmpty;
     final activeDevice = hasDevice ? deviceList[activeDeviceIndex] : null;
@@ -65,9 +83,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 8),
 
-              const Text(
-                'Rania',
-                style: TextStyle(
+              Text(
+                UserProfileState.name.value,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF174984),
@@ -76,9 +94,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 2),
 
-              const Text(
-                'raniamasyaputri@gmail.com',
-                style: TextStyle(fontSize: 14, color: Color(0xFF6E8DB0)),
+              Text(
+                UserProfileState.email.value,
+                style: const TextStyle(fontSize: 14, color: Color(0xFF6E8DB0)),
               ),
 
               const SizedBox(height: 8),
@@ -146,8 +164,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text(
+                            children: [
+                              const Text(
                                 'Email',
                                 style: TextStyle(
                                   fontSize: 14,
@@ -155,30 +173,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   color: Colors.black,
                                 ),
                               ),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
-                                'raniamasyaputri@gmail.com',
-                                style: TextStyle(
+                                UserProfileState.email.value,
+                                style: const TextStyle(
                                   fontSize: 13,
                                   height: 1.35,
                                   color: Color(0xFF9A9A9A),
                                 ),
                               ),
                             ],
-                          ),
-                        ),
-
-                        Container(
-                          width: 23,
-                          height: 23,
-                          decoration: const BoxDecoration(
-                            color: Color.fromARGB(255, 0, 54, 190),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: 12,
                           ),
                         ),
                       ],

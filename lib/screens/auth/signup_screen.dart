@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:aerodry_app/constants/app_state.dart';
 import 'package:aerodry_app/screens/dashboard_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -43,11 +45,39 @@ class _SignUpScreenState extends State<SignUpScreen> {
     });
   }
 
-  void signUpSuccess() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const DashboardScreen()),
-    );
+  Future<void> handleSignUp() async {
+    final name = fullNameController.text.trim();
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+
+    setState(() {
+      isValid = false;
+    });
+
+    try {
+      final sanitizedEmail = email.replaceAll('.', '_').replaceAll('@', '_');
+      await FirebaseDatabase.instance.ref('JEMURAN/users/$sanitizedEmail').set({
+        'fullName': name,
+        'email': email,
+        'password': password,
+      });
+
+      await UserProfileState.saveToPrefs(newName: name, newEmail: email);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        isValid = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Registration failed: $e')),
+      );
+    }
   }
 
   @override
@@ -256,7 +286,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: isValid ? signUpSuccess : null,
+                        onPressed: isValid ? handleSignUp : null,
                         style: ElevatedButton.styleFrom(
                           elevation: 0,
                           backgroundColor: isValid

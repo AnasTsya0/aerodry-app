@@ -147,12 +147,20 @@ class _DashboardScreenState extends State<DashboardScreen>
                                 ),
                               );
                             },
-                            child: const _MiniCard(
-                              title: 'Security',
-                              imagePath: 'assets/images/seclogo.png',
-                              label: 'System Status',
-                              value: 'Safe',
-                              footerText: 'Last checked\n1 minute ago',
+                            child: ValueListenableBuilder<bool>(
+                              valueListenable: SecurityState.alarmTriggered,
+                              builder: (context, alarm, _) {
+                                return _MiniCard(
+                                  title: 'Security',
+                                  imagePath: 'assets/images/seclogo.png',
+                                  label: 'System Status',
+                                  value: alarm ? 'Alert!' : 'Safe',
+                                  valueColor: alarm
+                                      ? const Color(0xFFFF4444)
+                                      : const Color(0xFF4DFF88),
+                                  footerText: 'Security mode\n${SecurityState.securityMode.value ? "Active" : "Inactive"}',
+                                );
+                              },
                             ),
                           ),
                         ),
@@ -538,29 +546,25 @@ class _DryingCard extends StatefulWidget {
 }
 
 class _DryingCardState extends State<_DryingCard> {
-  Timer? _durationTimer;
-
   @override
   void initState() {
     super.initState();
-    DryingState.mode.addListener(_onStateChange);
+    DryingState.displayMode.addListener(_onStateChange);
     DryingState.lastUpdateTime.addListener(_onStateChange);
     DryingState.weatherCondition.addListener(_onStateChange);
-    DryingState.location.addListener(_onStateChange);
-    DryingState.temperature.addListener(_onStateChange);
-    DryingState.dryingStartTime.addListener(_onDryingTimeChange);
-    _startDurationTimer();
+    DryingState.dryingDurationMinutes.addListener(_onStateChange);
+    DryingState.dryingStartTime.addListener(_onStateChange);
+    DryingState.online.addListener(_onStateChange);
   }
 
   @override
   void dispose() {
-    _durationTimer?.cancel();
-    DryingState.mode.removeListener(_onStateChange);
+    DryingState.displayMode.removeListener(_onStateChange);
     DryingState.lastUpdateTime.removeListener(_onStateChange);
     DryingState.weatherCondition.removeListener(_onStateChange);
-    DryingState.location.removeListener(_onStateChange);
-    DryingState.temperature.removeListener(_onStateChange);
-    DryingState.dryingStartTime.removeListener(_onDryingTimeChange);
+    DryingState.dryingDurationMinutes.removeListener(_onStateChange);
+    DryingState.dryingStartTime.removeListener(_onStateChange);
+    DryingState.online.removeListener(_onStateChange);
     super.dispose();
   }
 
@@ -568,23 +572,9 @@ class _DryingCardState extends State<_DryingCard> {
     if (mounted) setState(() {});
   }
 
-  void _onDryingTimeChange() {
-    _startDurationTimer();
-    if (mounted) setState(() {});
-  }
-
-  void _startDurationTimer() {
-    _durationTimer?.cancel();
-    if (DryingState.dryingStartTime.value != null) {
-      _durationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-        if (mounted) setState(() {});
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final mode = DryingState.mode.value;
+    final mode = DryingState.displayMode.value;
     final lastUpdate = DryingState.formattedLastUpdate;
     final weatherCond = DryingState.weatherCondition.value;
     final dryingDuration = DryingState.formattedDryingDuration;
@@ -636,23 +626,29 @@ class _DryingCardState extends State<_DryingCard> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 3, 55, 30),
+                      color: DryingState.online.value
+                          ? const Color.fromARGB(255, 3, 55, 30)
+                          : const Color.fromARGB(255, 60, 60, 60),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
+                      children: [
                         CircleAvatar(
                           radius: 2,
-                          backgroundColor: Color(0xFF42EF7D),
+                          backgroundColor: DryingState.online.value
+                              ? const Color(0xFF42EF7D)
+                              : const Color(0xFF9E9E9E),
                         ),
-                        SizedBox(width: 5),
+                        const SizedBox(width: 5),
                         Text(
-                          'Online',
+                          DryingState.online.value ? 'Online' : 'Offline',
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w900,
-                            color: Color.fromARGB(255, 4, 170, 57),
+                            color: DryingState.online.value
+                                ? const Color.fromARGB(255, 4, 170, 57)
+                                : const Color(0xFF9E9E9E),
                           ),
                         ),
                       ],
