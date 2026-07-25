@@ -5,15 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:aerodry_app/constants/app_state.dart';
 import 'package:aerodry_app/constants/notification_state.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-Future<String?> getUid() async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getString('uid');
-}
-/// Singleton service that connects to Firebase Realtime Database,
-/// listens to all nodes in real-time, and provides write methods
-/// for controlling the clothesline hardware.
 class FirebaseService {
   FirebaseService._();
   static final FirebaseService instance = FirebaseService._();
@@ -21,13 +13,11 @@ class FirebaseService {
   late DatabaseReference _rootRef;
   String _uid = '';
 
-  // Stream subscriptions
   StreamSubscription? _statusSub;
   StreamSubscription? _controlSub;
   StreamSubscription? _sensorSub;
   StreamSubscription? _weatherSub;
 
-  // Track previous values for generating activity log / notifications
   String _prevRackPosition = '';
   String _prevMotorStatus = '';
   bool _prevAlarmTriggered = false;
@@ -37,34 +27,39 @@ class FirebaseService {
   int _prevIrValue = 1;
   bool _initialized = false;
   bool _sensorInitialized = false;
+  String? _manualTarget;
 
-  String _lastTriggerSource = '';
+  bool _manualInProgress = false;
 
-  // ─── References ──────────────────────────────────────────────────────
+  int _lastLdrValue = 0;
+  int _lastRainValue = 4095;
+
+  // Hysteresis
+  static const int rainThreshold = 2500;
+  static const int rainHysteresis = 200;
+  static const int ldrThreshold = 1000;
+  static const int ldrHysteresis = 200;
+
   DatabaseReference get _statusRef => _rootRef.child('status');
   DatabaseReference get _controlRef => _rootRef.child('control');
   DatabaseReference get _sensorRef => _rootRef.child('sensor');
   DatabaseReference get _weatherRef => _rootRef.child('weather_forecast');
 
-  // ─── Initialize ──────────────────────────────────────────────────────
   void init(String uid) {
     _uid = uid;
     _rootRef = FirebaseDatabase.instance.ref('JEMURAN/$_uid');
-
     _statusSub?.cancel();
     _controlSub?.cancel();
     _sensorSub?.cancel();
     _weatherSub?.cancel();
-
     _listenStatus();
     _listenControl();
     _listenSensor();
     _listenWeather();
   }
 
-  // ─── Status listener ─────────────────────────────────────────────────
   void _listenStatus() {
-    _statusSub = _statusRef.onValue.listen((event) {
+    _statusSub = _statusRef.onValue.listen((event) async {
       final data = event.snapshot.value;
       if (data == null || data is! Map) return;
       final map = Map<String, dynamic>.from(data);
@@ -92,6 +87,18 @@ class FirebaseService {
       RackState.updateFromFirebase(fbRackPosition);
 
       if (_initialized) {
+        final posisiBerubah = fbRackPosition != _prevRackPosition;
+
+        if (posisiBerubah && _manualInProgress) {
+          if (_manualTarget == fbRackPosition) {
+            print('✅ [MANUAL] Selesai, posisi sesuai target $fbRackPosition');
+          } else {
+            print('⚠️ [MANUAL] Posisi tidak sesuai target, abaikan');
+          }
+          _manualInProgress = false;
+          _manualTarget = null;
+        }
+
         _handleRackChange(fbRackPosition);
         _handleMotorChange(fbMotorStatus);
         _handleObstacleChange(fbObstacle);
@@ -104,7 +111,6 @@ class FirebaseService {
     });
   }
 
-  // ─── Control listener ─────────────────────────────────────────────────
   void _listenControl() {
     _controlSub = _controlRef.onValue.listen((event) {
       final data = event.snapshot.value;
@@ -134,9 +140,8 @@ class FirebaseService {
     });
   }
 
-  // ─── Sensor listener ──────────────────────────────────────────────────
   void _listenSensor() {
-    _sensorSub = _sensorRef.onValue.listen((event) {
+    _sensorSub = _sensorRef.onValue.listen((event) async {
       final data = event.snapshot.value;
       if (data == null || data is! Map) return;
       final map = Map<String, dynamic>.from(data);
@@ -145,7 +150,12 @@ class FirebaseService {
       final rain = (map['rain'] as int?) ?? 4095;
       final ldr = (map['ldr'] as int?) ?? 4095;
 
+      _lastLdrValue = ldr;
+      _lastRainValue = rain;
+
       SecurityState.irSensor.value = ir;
+
+      print('📊 [SENSOR] rain=$rain, ldr=$ldr, ir=$ir');
 
       if (!_sensorInitialized) {
         _prevRainValue = rain;
@@ -155,7 +165,20 @@ class FirebaseService {
         return;
       }
 
-      if (_initialized && rain < 1000 && _prevRainValue >= 1000) {
+      // Jika sedang ada gerakan manual, jangan proses sensor
+      if (_manualInProgress) {
+        print('⏳ [SENSOR] Manual in progress, skip');
+        _prevRainValue = rain;
+        _prevLdrValue = ldr;
+        _prevIrValue = ir;
+        return;
+      }
+
+      // Rain detection with hysteresis
+      if (_initialized &&
+          rain < rainThreshold &&
+          _prevRainValue > (rainThreshold + rainHysteresis)) {
+        print('🌧️ [SENSOR] RAIN terdeteksi! rain=$rain');
         _addNotification(
           title: 'Rain Detected',
           subtitle: 'Rain sensor triggered — clothesline retracting',
@@ -169,11 +192,11 @@ class FirebaseService {
           'Rain detected on rain sensor',
           sensorName: 'Rain Sensor',
         );
-        _lastTriggerSource = 'RAIN';
-        sendMoveIn(manual: false);
       }
 
-      if (_initialized && rain >= 1000 && _prevRainValue < 1000) {
+      if (_initialized &&
+          rain >= rainThreshold &&
+          _prevRainValue < (rainThreshold - rainHysteresis)) {
         _addNotification(
           title: 'Rain Stopped',
           subtitle: 'Rain sensor cleared — waiting for sunlight',
@@ -185,7 +208,11 @@ class FirebaseService {
         );
       }
 
-      if (_initialized && ldr < 1000 && _prevLdrValue >= 1000) {
+      // LDR detection with hysteresis
+      if (_initialized &&
+          ldr < ldrThreshold &&
+          _prevLdrValue > (ldrThreshold + ldrHysteresis)) {
+        print('☀️ [SENSOR] CAHAYA terdeteksi! ldr=$ldr');
         _addNotification(
           title: 'Sunlight Detected',
           subtitle: 'LDR sensor triggered — clothesline extending',
@@ -199,11 +226,12 @@ class FirebaseService {
           'Bright light detected by LDR sensor',
           sensorName: 'LDR Sensor',
         );
-        _lastTriggerSource = 'LDR';
-        sendMoveOut(manual: false);
       }
 
-      if (_initialized && ldr >= 1000 && _prevLdrValue < 1000) {
+      if (_initialized &&
+          ldr >= ldrThreshold &&
+          _prevLdrValue < (ldrThreshold - ldrHysteresis)) {
+        print('🌑 [SENSOR] GELAP terdeteksi! ldr=$ldr');
         _addNotification(
           title: 'No Light Detected',
           subtitle: 'LDR sensor triggered — clothesline retracting',
@@ -217,10 +245,9 @@ class FirebaseService {
           'No light detected by LDR sensor',
           sensorName: 'LDR Sensor',
         );
-        _lastTriggerSource = 'LDR';
-        sendMoveIn(manual: false);
       }
 
+      // Motion detection
       if (_initialized && ir == 0 && _prevIrValue != 0) {
         _addNotification(
           title: 'Motion Detected!',
@@ -230,26 +257,9 @@ class FirebaseService {
           titleColor: const Color(0xFFFF4444),
           iconBg: const Color(0xFFFFCACA),
         );
-        ActivityLogState.addFirebaseEntry(
-          title: 'Motion Detected',
-          subtitle1: 'Activity detected in the laundry area',
-          subtitle2: '',
-          tag: 'Motion',
-          type: ActivityType.motion,
-          imagePath: 'assets/images/motioncard.png',
-        );
       }
 
-      if (_initialized && ir != 0 && _prevIrValue == 0) {
-        ActivityLogState.addFirebaseEntry(
-          title: 'No Motion Detected',
-          subtitle1: 'Clothesline area is safe',
-          subtitle2: '',
-          tag: 'Motion',
-          type: ActivityType.motion,
-          imagePath: 'assets/images/motioncard.png',
-        );
-      }
+      if (_initialized && ir != 0 && _prevIrValue == 0) {}
 
       _prevRainValue = rain;
       _prevLdrValue = ldr;
@@ -257,7 +267,6 @@ class FirebaseService {
     });
   }
 
-  // ─── Weather listener ─────────────────────────────────────────────────
   void _listenWeather() {
     _weatherSub = _weatherRef.onValue.listen((event) {
       final data = event.snapshot.value;
@@ -274,91 +283,11 @@ class FirebaseService {
     });
   }
 
-  // ─── Event handlers ───────────────────────────────────────────────────
   void _handleRackChange(String newPosition) {
-    if (newPosition == _prevRackPosition) return;
-    final isOut = newPosition == 'OUT';
-    final trigger = _lastTriggerSource;
-    final isManual = trigger == 'MANUAL';
-
-    String title, subtitle1, subtitle2, tag;
-    ActivityType type;
-    bool isRain = false;
-
-    if (trigger == 'MANUAL') {
-      title = isOut ? 'Extended Alert' : 'Retracted Alert';
-      subtitle1 = isOut
-          ? 'Clothesline moving out in manual mode'
-          : 'Clothesline moving in in manual mode';
-      subtitle2 = '';
-      tag = 'Manual';
-      type = ActivityType.manual;
-    } else if (trigger == 'RAIN') {
-      title = 'Retracted Alert';
-      subtitle1 = 'Rain Detected';
-      subtitle2 = '';
-      tag = 'Weather';
-      type = ActivityType.weather;
-      isRain = true;
-    } else if (trigger == 'LDR') {
-      if (isOut) {
-        title = 'Extended Alert';
-        subtitle1 = 'Heat Warning Retracted';
-        subtitle2 = '';
-        tag = 'Weather';
-        type = ActivityType.weather;
-      } else {
-        title = 'Retracted Alert';
-        subtitle1 = 'No Light Detected';
-        subtitle2 = '';
-        tag = 'Weather';
-        type = ActivityType.weather;
-        isRain = true;
-      }
-    } else {
-      title = isOut ? 'Extended Alert' : 'Retracted Alert';
-      subtitle1 = isOut ? 'Clothesline Moving Out' : 'Clothesline Moving In';
-      subtitle2 = '';
-      tag = 'Weather';
-      type = ActivityType.weather;
-      isRain = !isOut;
-    }
-
-    ActivityLogState.addFirebaseEntry(
-      title: title,
-      subtitle1: subtitle1,
-      subtitle2: subtitle2,
-      tag: tag,
-      type: type,
-      imagePath: isOut
-          ? 'assets/images/moveoutmanual.png'
-          : 'assets/images/moveinmanual.png',
-      temp: DryingState.temperature.value,
-      isRain: isRain,
-    );
-
-    Future.delayed(const Duration(milliseconds: 300), () {
-      _lastTriggerSource = '';
-    });
-
-    _addNotification(
-      title: isOut ? 'Extended Alert' : 'Retracted Alert',
-      subtitle: isOut
-          ? 'Clothesline has been moved out'
-          : 'Clothesline has been moved in',
-      img: isOut
-          ? 'assets/images/bukajemurancard.png'
-          : 'assets/images/tutupjemurancard.png',
-      sideColor: isOut ? const Color(0xFF5B7FFF) : const Color(0xFF9EA3A7),
-      titleColor: const Color(0xFF4A4A4A),
-      iconBg: isOut ? const Color(0xFFDCE6FF) : const Color(0xFFE5E5E5),
-    );
+    print('🔄 [RACK] posisi sekarang: $newPosition');
   }
 
-  void _handleMotorChange(String newStatus) {
-    // nothing needed
-  }
-
+  void _handleMotorChange(String newStatus) {}
   void _handleObstacleChange(bool newObstacle) {
     if (newObstacle == _prevObstacle) return;
     if (newObstacle) {
@@ -373,7 +302,24 @@ class FirebaseService {
     }
   }
 
-  // ─── Notification helper ──────────────────────────────────────────────
+  Future<void> _writeActivityLog({
+    required String title,
+    required String desc,
+    required String type,
+  }) async {
+    if (_uid.isEmpty) {
+      print('❌ UID kosong, tidak bisa menulis log');
+      return;
+    }
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    print('📝 [WRITE] title=$title, desc=$desc, type=$type');
+    final logRef = FirebaseDatabase.instance.ref(
+      'JEMURAN/$_uid/activity_log/$timestamp',
+    );
+    await logRef.set({'title': title, 'desc': desc, 'type': type});
+    print('✅ Activity log ditulis');
+  }
+
   void _addNotification({
     required String title,
     required String subtitle,
@@ -405,29 +351,35 @@ class FirebaseService {
     );
   }
 
-  // ─── Write methods (control the hardware) ─────────────────────────────
+  // ─── Write methods ──────────────────────
   Future<void> sendMoveIn({bool manual = true}) async {
-    await _controlRef.update({
-      'stop': false,
-      'moveIn': true,
-      'moveOut': false,
-    });
+    print('🔴 sendMoveIn dipanggil: manual=$manual');
+    if (manual) {
+      _manualInProgress = true;
+      _manualTarget = 'IN';
+      print('🖐️ [MOVE IN] MANUAL - menunggu konfirmasi posisi');
+    } else {
+      print('🤖 [MOVE IN] otomatis diabaikan');
+    }
+    await _controlRef.update({'stop': false, 'moveIn': true, 'moveOut': false});
   }
 
   Future<void> sendMoveOut({bool manual = true}) async {
-    await _controlRef.update({
-      'stop': false,
-      'moveOut': true,
-      'moveIn': false,
-    });
+    print('🟢 sendMoveOut dipanggil: manual=$manual');
+    if (manual) {
+      _manualInProgress = true;
+      _manualTarget = 'OUT';
+      print('🖐️ [MOVE OUT] MANUAL - menunggu konfirmasi posisi');
+    } else {
+      print('🤖 [MOVE OUT] otomatis diabaikan');
+    }
+    await _controlRef.update({'stop': false, 'moveOut': true, 'moveIn': false});
   }
 
   Future<void> sendStop() async {
-    await _controlRef.update({
-      'stop': true,
-      'moveIn': false,
-      'moveOut': false,
-    });
+    _manualInProgress = false;
+    _manualTarget = null; // batalkan target, tidak akan ada log
+    await _controlRef.update({'stop': true, 'moveIn': false, 'moveOut': false});
   }
 
   Future<void> setAutoMode(bool value) async {
@@ -446,43 +398,40 @@ class FirebaseService {
     await _controlRef.update({'alarmTriggered': false});
   }
 
-  // ─── Security settings (for SecurityScreen) ─────────────────────────
-Future<void> setActivityNotifications(bool value) async {
-  final uid = await getUid();
-  if (uid == null) {
-    print('❌ UID tidak ditemukan di SharedPreferences');
-    return;
-  }
-  print('👤 UID dari SharedPreferences: $uid');
-  await FirebaseDatabase.instance
-      .ref('JEMURAN/$uid/security_settings')
-      .update({'activityNotifications': value});
-  print('✅ activityNotifications = $value terkirim');
-}
-  Future<void> updateSecurityActionDelay(int seconds) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+  Future<void> setActivityNotifications(bool value) async {
+    if (_uid.isEmpty) {
+      print('❌ UID belum diinisialisasi.');
+      return;
+    }
     await FirebaseDatabase.instance
-        .ref('JEMURAN/$uid/security_settings')
+        .ref('JEMURAN/$_uid/security_settings')
+        .update({'activityNotifications': value});
+    print('✅ activityNotifications = $value terkirim');
+  }
+
+  Future<void> updateSecurityActionDelay(int seconds) async {
+    if (_uid.isEmpty) return;
+    await FirebaseDatabase.instance
+        .ref('JEMURAN/$_uid/security_settings')
         .update({'actionDelay': seconds});
   }
 
   Future<bool> getSecurityAutoRetract() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    if (_uid.isEmpty) return false;
     final snapshot = await FirebaseDatabase.instance
-        .ref('JEMURAN/$uid/security_settings/autoRetract')
+        .ref('JEMURAN/$_uid/security_settings/autoRetract')
         .get();
     return snapshot.exists ? (snapshot.value as bool) : false;
   }
 
   Future<int> getSecurityActionDelay() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    if (_uid.isEmpty) return 5;
     final snapshot = await FirebaseDatabase.instance
-        .ref('JEMURAN/$uid/security_settings/actionDelay')
+        .ref('JEMURAN/$_uid/security_settings/actionDelay')
         .get();
     return snapshot.exists ? (snapshot.value as int) : 5;
   }
 
-  /// Dispose all listeners
   void dispose() {
     _statusSub?.cancel();
     _controlSub?.cancel();
