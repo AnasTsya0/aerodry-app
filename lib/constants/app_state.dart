@@ -189,8 +189,15 @@ class DryingState {
 
     if (moveType == 'out') {
       dryingStartTime.value = now;
+      _isDurationFrozen = false;
     } else {
+      // Move IN manually — freeze duration at current elapsed value
+      if (dryingStartTime.value != null) {
+        final elapsed = now.difference(dryingStartTime.value!).inMinutes;
+        dryingDurationMinutes.value = elapsed;
+      }
       dryingStartTime.value = null;
+      _isDurationFrozen = true;
     }
   }
 
@@ -216,11 +223,8 @@ class DryingState {
   }) {
     // Map Firebase mode to display
     mode.value = fbMode == 'AUTO' ? 'Automatic' : 'Manual';
-    // If Firebase reports AUTO mode, revert displayMode to Automatic
-    // (sensor triggered an action, so UI should show Automatic)
-    if (fbMode == 'AUTO') {
-      displayMode.value = 'Automatic';
-    }
+    // displayMode is NOT auto-reverted here — it only changes via:
+    // onManualSuccess (→ 'Manual') or onSensorTriggered (→ 'Automatic')
     motorStatus.value = fbMotorStatus;
 
     // Abaikan progress lama kalau motor belum bergerak

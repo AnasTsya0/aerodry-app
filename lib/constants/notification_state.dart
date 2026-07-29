@@ -31,7 +31,7 @@ class NotificationEntry {
 
   /// Format time as relative "Just now", "X min ago", etc.
   String get formattedTime {
-    final now = DateTime.now().toUtc().add(const Duration(hours: 7));
+    final now = DateTime.now();
     final diff = now.difference(timestamp);
     if (diff.inSeconds < 60) return 'Just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';

@@ -197,8 +197,6 @@ class FirebaseService {
           'Rain detected on rain sensor',
           sensorName: 'Rain Sensor',
         );
-        DryingState.weatherCondition.value = 'Rain';
-        DryingState.lastUpdateTime.value = DateTime.now();
       }
 
       if (_initialized &&
@@ -208,8 +206,6 @@ class FirebaseService {
           'Rain stopped, waiting for sunlight',
           sensorName: 'Rain Sensor',
         );
-        DryingState.weatherCondition.value = 'Clear';
-        DryingState.lastUpdateTime.value = DateTime.now();
       }
 
       // LDR detection with hysteresis
@@ -221,8 +217,6 @@ class FirebaseService {
           'Bright light detected by LDR sensor',
           sensorName: 'LDR Sensor',
         );
-        DryingState.weatherCondition.value = 'Sunny';
-        DryingState.lastUpdateTime.value = DateTime.now();
       }
 
       if (_initialized &&
@@ -233,8 +227,6 @@ class FirebaseService {
           'No light detected by LDR sensor',
           sensorName: 'LDR Sensor',
         );
-        DryingState.weatherCondition.value = 'No Light';
-        DryingState.lastUpdateTime.value = DateTime.now();
       }
 
       // Motion detection — notification handled via activity log
@@ -256,8 +248,7 @@ class FirebaseService {
       if (data == null || data is! Map) return;
       final map = Map<String, dynamic>.from(data);
 
-      // Only update temperature from Firebase — weatherCondition is
-      // exclusively controlled by sensors (rain/LDR) to persist correctly.
+      // Only update temperature — weatherCondition is derived from activity log
       final temp = (map['temp'] as int?) ?? 0;
       if (temp > 0) {
         DryingState.temperature.value = '$temp°';
@@ -452,7 +443,7 @@ class FirebaseService {
     required Color iconBg,
     bool isRain = false,
   }) {
-    final now = DateTime.now().toUtc().add(const Duration(hours: 7));
+    final now = DateTime.now();
     final location = deviceList.isNotEmpty
         ? deviceList[activeDeviceIndex].location
         : 'Jakarta';
@@ -497,6 +488,9 @@ class FirebaseService {
     bool isRain = entry.isRain;
 
     if (title.contains('Retracted')) {
+      // Skip notification for manual retractions
+      if (entry.tag.toLowerCase() == 'manual') return;
+
       sideColor = const Color(0xFF9EA3A7);
       titleColor = const Color(0xFF4A4A4A);
       iconBg = const Color(0xFFE5E5E5);
