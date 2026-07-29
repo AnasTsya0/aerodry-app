@@ -688,7 +688,7 @@ class _HistoryItem extends StatelessWidget {
         iconBgColor: const Color(0xFFFFE8C8),
         imagePath: isOut
             ? 'assets/images/keluarmanualcard.png'
-            : 'assets/images/masukmanualcard.png',
+            : 'assets/images/masukmanualcardpng.png',
         iconPadding: 7,
       );
     }

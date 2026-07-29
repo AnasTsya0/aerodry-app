@@ -35,6 +35,13 @@ class FirebaseService {
   int _lastLdrValue = 0;
   int _lastRainValue = 4095;
 
+  /// When a sensor overrides weatherCondition, skip Firebase weather updates
+  /// for a short period so the sensor value stays visible.
+  DateTime? _sensorOverrideUntil;
+
+  /// Track known activity log keys to detect new entries
+  Set<String>? _knownActivityKeys;
+
   // Hysteresis
   static const int rainThreshold = 2500;
   static const int rainHysteresis = 200;
@@ -129,14 +136,7 @@ class FirebaseService {
       );
 
       if (_initialized && fbAlarmTriggered && !_prevAlarmTriggered) {
-        _addNotification(
-          title: 'Security Alert!',
-          subtitle: 'Alarm triggered — motion detected near clothesline',
-          img: 'assets/images/motioncard.png',
-          sideColor: const Color(0xFFFF4444),
-          titleColor: const Color(0xFFFF4444),
-          iconBg: const Color(0xFFFFCACA),
-        );
+        // Security alert — notification handled via activity log
       }
 
       _prevAlarmTriggered = fbAlarmTriggered;
@@ -165,6 +165,17 @@ class FirebaseService {
         _prevLdrValue = ldr;
         _prevIrValue = ir;
         _sensorInitialized = true;
+        // Set initial weatherCondition based on current sensor state
+        if (rain < rainThreshold) {
+          DryingState.weatherCondition.value = 'Rain';
+          print('🌧️ [SENSOR INIT] Rain already active, setting condition=Rain');
+        } else if (ldr >= ldrThreshold) {
+          DryingState.weatherCondition.value = 'No Light';
+          print('🌑 [SENSOR INIT] No light already active, setting condition=No Light');
+        } else if (ldr < ldrThreshold) {
+          DryingState.weatherCondition.value = 'Sunny';
+          print('☀️ [SENSOR INIT] Sunny already active, setting condition=Sunny');
+        }
         return;
       }
 
@@ -182,15 +193,6 @@ class FirebaseService {
           rain < rainThreshold &&
           _prevRainValue > (rainThreshold + rainHysteresis)) {
         print('🌧️ [SENSOR] RAIN terdeteksi! rain=$rain');
-        _addNotification(
-          title: 'Rain Detected',
-          subtitle: 'Rain sensor triggered — clothesline retracting',
-          img: 'assets/images/tutupjemurancard.png',
-          sideColor: const Color(0xFF9EA3A7),
-          titleColor: const Color(0xFF4A4A4A),
-          iconBg: const Color(0xFFE5E5E5),
-          isRain: true,
-        );
         DryingState.onSensorTriggered(
           'Rain detected on rain sensor',
           sensorName: 'Rain Sensor',
@@ -202,15 +204,6 @@ class FirebaseService {
       if (_initialized &&
           rain >= rainThreshold &&
           _prevRainValue < (rainThreshold - rainHysteresis)) {
-        _addNotification(
-          title: 'Rain Stopped',
-          subtitle: 'Rain sensor cleared — waiting for sunlight',
-          img: 'assets/images/bukajemurancard.png',
-          sideColor: const Color(0xFF5B7FFF),
-          titleColor: const Color(0xFF4A4A4A),
-          iconBg: const Color(0xFFDCE6FF),
-          isRain: false,
-        );
         DryingState.onSensorTriggered(
           'Rain stopped, waiting for sunlight',
           sensorName: 'Rain Sensor',
@@ -224,15 +217,6 @@ class FirebaseService {
           ldr < ldrThreshold &&
           _prevLdrValue > (ldrThreshold + ldrHysteresis)) {
         print('☀️ [SENSOR] CAHAYA terdeteksi! ldr=$ldr');
-        _addNotification(
-          title: 'Sunlight Detected',
-          subtitle: 'LDR sensor triggered — clothesline extending',
-          img: 'assets/images/bukajemurancard.png',
-          sideColor: const Color(0xFF5B7FFF),
-          titleColor: const Color(0xFF4A4A4A),
-          iconBg: const Color(0xFFDCE6FF),
-          isRain: false,
-        );
         DryingState.onSensorTriggered(
           'Bright light detected by LDR sensor',
           sensorName: 'LDR Sensor',
@@ -245,15 +229,6 @@ class FirebaseService {
           ldr >= ldrThreshold &&
           _prevLdrValue < (ldrThreshold - ldrHysteresis)) {
         print('🌑 [SENSOR] GELAP terdeteksi! ldr=$ldr');
-        _addNotification(
-          title: 'No Light Detected',
-          subtitle: 'LDR sensor triggered — clothesline retracting',
-          img: 'assets/images/tutupjemurancard.png',
-          sideColor: const Color(0xFF9EA3A7),
-          titleColor: const Color(0xFF4A4A4A),
-          iconBg: const Color(0xFFE5E5E5),
-          isRain: true,
-        );
         DryingState.onSensorTriggered(
           'No light detected by LDR sensor',
           sensorName: 'LDR Sensor',
@@ -262,16 +237,9 @@ class FirebaseService {
         DryingState.lastUpdateTime.value = DateTime.now();
       }
 
-      // Motion detection
+      // Motion detection — notification handled via activity log
       if (_initialized && ir == 0 && _prevIrValue != 0) {
-        _addNotification(
-          title: 'Motion Detected!',
-          subtitle: 'Activity detected in the laundry area',
-          img: 'assets/images/motioncard.png',
-          sideColor: const Color(0xFFFF4444),
-          titleColor: const Color(0xFFFF4444),
-          iconBg: const Color(0xFFFFCACA),
-        );
+        // motion event logged; notification comes from _createNotificationFromLogEntry
       }
 
       if (_initialized && ir != 0 && _prevIrValue == 0) {}
@@ -288,10 +256,9 @@ class FirebaseService {
       if (data == null || data is! Map) return;
       final map = Map<String, dynamic>.from(data);
 
-      final condition = (map['condition'] as String?) ?? 'Clear Sky';
+      // Only update temperature from Firebase — weatherCondition is
+      // exclusively controlled by sensors (rain/LDR) to persist correctly.
       final temp = (map['temp'] as int?) ?? 0;
-
-      DryingState.weatherCondition.value = condition;
       if (temp > 0) {
         DryingState.temperature.value = '$temp°';
       }
@@ -305,16 +272,7 @@ class FirebaseService {
   void _handleMotorChange(String newStatus) {}
   void _handleObstacleChange(bool newObstacle) {
     if (newObstacle == _prevObstacle) return;
-    if (newObstacle) {
-      _addNotification(
-        title: 'Obstacle Detected!',
-        subtitle: 'Obstacle detected — motor stopped for safety',
-        img: 'assets/images/motioncard.png',
-        sideColor: const Color(0xFFFF8800),
-        titleColor: const Color(0xFFFF8800),
-        iconBg: const Color(0xFFFFE4C4),
-      );
-    }
+    // Obstacle detected (no notification)
   }
 
 
@@ -402,6 +360,33 @@ class FirebaseService {
 
       // Sort by timestamp descending (newest first)
       logEntries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+      // Generate notifications for NEW entries only (not on initial load)
+      final newKeys = map.keys.toSet();
+      if (_knownActivityKeys != null) {
+        final addedKeys = newKeys.difference(_knownActivityKeys!);
+        if (addedKeys.isNotEmpty) {
+          for (final key in addedKeys) {
+            // Find the matching log entry
+            final entry = logEntries.where((e) {
+              int tsRaw;
+              if ((map[key] as Map)['timestamp'] != null) {
+                tsRaw = ((map[key] as Map)['timestamp'] as num).toInt();
+              } else {
+                tsRaw = int.tryParse(key) ?? 0;
+              }
+              final tsMs = tsRaw < 10000000000 ? tsRaw * 1000 : tsRaw;
+              return e.timestamp.millisecondsSinceEpoch == tsMs;
+            }).firstOrNull;
+
+            if (entry != null) {
+              _createNotificationFromLogEntry(entry);
+            }
+          }
+        }
+      }
+      _knownActivityKeys = newKeys;
+
       ActivityLogState.entries.value = logEntries;
       print('📋 [ACTIVITY LOG] Loaded ${logEntries.length} entries from Firebase');
     });
@@ -434,6 +419,74 @@ class FirebaseService {
         iconBg: iconBg,
         isRain: isRain,
         timestamp: now,
+      ),
+    );
+  }
+
+  /// Create a notification from a new activity log entry.
+  /// Only creates notifications for: Retracted Alert, Motion Detected,
+  /// Rain Detected, No Light Detected, Security Alert.
+  void _createNotificationFromLogEntry(ActivityLogEntry entry) {
+    final title = entry.title;
+    // Always use the CURRENT active device location & live temperature
+    final deviceLocation = deviceList.isNotEmpty
+        ? deviceList[activeDeviceIndex].location
+        : entry.location;
+    final city = deviceLocation.split(',').first.trim();
+    final temperature = DryingState.temperature.value.isNotEmpty &&
+            DryingState.temperature.value != '--°'
+        ? DryingState.temperature.value
+        : entry.temp;
+
+    Color sideColor;
+    Color titleColor;
+    Color iconBg;
+    String img;
+    String subtitle;
+    bool isRain = entry.isRain;
+
+    if (title.contains('Retracted')) {
+      sideColor = const Color(0xFF9EA3A7);
+      titleColor = const Color(0xFF4A4A4A);
+      iconBg = const Color(0xFFE5E5E5);
+      img = 'assets/images/masukweathercard.png';
+      // Shorten subtitle based on trigger
+      if (entry.subtitle1.toLowerCase().contains('rain') || entry.tag.toLowerCase() == 'weather') {
+        subtitle = 'Clothesline retracted due to rain';
+      } else if (entry.subtitle1.toLowerCase().contains('light') || entry.subtitle1.toLowerCase().contains('ldr')) {
+        subtitle = 'Clothesline retracted, no sunlight';
+      } else {
+        subtitle = entry.subtitle1.isNotEmpty ? entry.subtitle1 : 'Clothesline retracted';
+      }
+      isRain = true;
+    } else if (title.contains('Motion Detected')) {
+      sideColor = const Color(0xFFFF4444);
+      titleColor = const Color(0xFFFF4444);
+      iconBg = const Color(0xFFFFCACA);
+      img = 'assets/images/motioncard.png';
+      subtitle = 'Motion near the clothesline';
+    } else if (title.contains('No Motion')) {
+      return;
+    } else if (title.contains('Extended')) {
+      return;
+    } else {
+      // Skip other types
+      return;
+    }
+
+    print('🔔 [NOTIF] Creating notification from log: $title');
+    NotificationState.addNotification(
+      NotificationEntry(
+        title: title,
+        subtitle: subtitle,
+        temperature: temperature,
+        city: city,
+        img: img,
+        sideColor: sideColor,
+        titleColor: titleColor,
+        iconBg: iconBg,
+        isRain: isRain,
+        timestamp: entry.timestamp,
       ),
     );
   }
