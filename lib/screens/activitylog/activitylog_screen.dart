@@ -632,12 +632,25 @@ class _HistoryItem extends StatelessWidget {
         tagTextColor: const Color(0xFF5E93FF),
         titleColor: const Color(0xFF5E93FF),
         iconBgColor: const Color(0xFFDCE7FF),
-        imagePath: 'assets/images/bukajemurancard.png',
+        imagePath: 'assets/images/keluarweathercard.png',
         iconPadding: 6,
       );
     }
 
-    // 3. Motion Detected → merah semua, tag Motion merah, icon motioncard
+    // 3a. No Motion Detected → hijau semua KECUALI tag Motion tetap merah
+    if (title.contains('No Motion Detected')) {
+      return _LogItemStyle(
+        lineColor: const Color(0xFF34C759),
+        tagBgColor: const Color(0xFFFFCACA),
+        tagTextColor: const Color(0xFFFF4444),
+        titleColor: const Color(0xFF34C759),
+        iconBgColor: const Color(0xFFD6F5DE),
+        imagePath: 'assets/images/nomotioncard.png',
+        iconPadding: 6,
+      );
+    }
+
+    // 3b. Motion Detected → merah semua, tag Motion merah, icon motioncard
     if (title.contains('Motion Detected')) {
       return _LogItemStyle(
         lineColor: const Color(0xFFFF4444),
@@ -646,7 +659,7 @@ class _HistoryItem extends StatelessWidget {
         titleColor: const Color(0xFFFF1E1E),
         iconBgColor: const Color(0xFFFFE0E0),
         imagePath: 'assets/images/motioncard.png',
-        iconPadding: 9,
+        iconPadding: 6,
       );
     }
 
@@ -659,13 +672,14 @@ class _HistoryItem extends StatelessWidget {
         titleColor: const Color(0xFF9EA3A7),
         iconBgColor: const Color(0xFFE5E5E5),
         imagePath: 'assets/images/masukweathercard.png',
-        iconPadding: 4,
+        iconPadding: 5,
       );
     }
 
     // 5. Manual → orange semua
     if (entry.type == ActivityType.manual || tag.toLowerCase() == 'manual') {
-      final isOut = title.contains('Extended') || title.toLowerCase().contains('out');
+      final isOut =
+          title.contains('Extended') || title.toLowerCase().contains('out');
       return _LogItemStyle(
         lineColor: const Color(0xFFFF9F0A),
         tagBgColor: const Color(0xFFFFECC8),
@@ -696,11 +710,21 @@ class _HistoryItem extends StatelessWidget {
     if (entry.type == ActivityType.weather) {
       final isRetracted = title.contains('Retracted') || entry.isRain;
       return _LogItemStyle(
-        lineColor: isRetracted ? const Color(0xFF9EA3A7) : const Color(0xFF6A9EFF),
-        tagBgColor: isRetracted ? const Color(0xFFE3E6E7) : const Color(0xFFC6D7FF),
-        tagTextColor: isRetracted ? const Color(0xFF9EA3A7) : const Color(0xFF5E93FF),
-        titleColor: isRetracted ? const Color(0xFF9EA3A7) : const Color(0xFF5E93FF),
-        iconBgColor: isRetracted ? const Color(0xFFE5E5E5) : const Color(0xFFDCE7FF),
+        lineColor: isRetracted
+            ? const Color(0xFF9EA3A7)
+            : const Color(0xFF6A9EFF),
+        tagBgColor: isRetracted
+            ? const Color(0xFFE3E6E7)
+            : const Color(0xFFC6D7FF),
+        tagTextColor: isRetracted
+            ? const Color(0xFF9EA3A7)
+            : const Color(0xFF5E93FF),
+        titleColor: isRetracted
+            ? const Color(0xFF9EA3A7)
+            : const Color(0xFF5E93FF),
+        iconBgColor: isRetracted
+            ? const Color(0xFFE5E5E5)
+            : const Color(0xFFDCE7FF),
         imagePath: isRetracted
             ? 'assets/images/masukweathercard.png'
             : 'assets/images/keluarweathercard.png',
@@ -752,10 +776,7 @@ class _HistoryItem extends StatelessWidget {
               child: SizedBox(
                 width: 49 - style.iconPadding * 2,
                 height: 49 - style.iconPadding * 2,
-                child: Image.asset(
-                  style.imagePath,
-                  fit: BoxFit.contain,
-                ),
+                child: Image.asset(style.imagePath, fit: BoxFit.contain),
               ),
             ),
           ),
@@ -882,4 +903,3 @@ class _HistoryItem extends StatelessWidget {
     );
   }
 }
-

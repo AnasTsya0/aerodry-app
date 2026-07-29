@@ -120,13 +120,13 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
     _motorStarted = true;
     _isProcessing = true;   // pastikan processing true
   }
-  if (motor == 'STOP' && _isProcessing && DryingState.progress.value < 100) {
-    // Berhenti tidak sempurna → cancel
+  if (motor == 'STOP' && _isProcessing && DryingState.progress.value < 98) {
+    // Berhenti tidak sempurna → cancel (di bawah 98% dianggap gagal)
     _isProcessing = false;
     _isCancelled = true;
     _showCancelledDialog();
 }
-  if (_motorStarted && motor == 'STOP' && DryingState.progress.value >= 100 && _isProcessing) {
+  if (_motorStarted && motor == 'STOP' && DryingState.progress.value >= 98 && _isProcessing) {
     _onProcessComplete();
   }
 }
