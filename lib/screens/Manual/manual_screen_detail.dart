@@ -294,11 +294,9 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
                 ),
               ),
               const SizedBox(height: 20),
-              Text(
-                widget.moveType == 'out'
-                    ? 'Move Out Completed'
-                    : 'Move In Completed',
-                style: const TextStyle(
+              const Text(
+                'Successful!',
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF0B3B7A),
@@ -307,8 +305,8 @@ class _ManualDetailScreenState extends State<ManualDetailScreen>
               const SizedBox(height: 8),
               Text(
                 widget.moveType == 'out'
-                    ? 'The clothesline has been\nsuccessfully moved out.'
-                    : 'The clothesline has been\nsuccessfully moved in.',
+                    ? 'Clothesline has been extended\nsuccessfully. Happy drying!'
+                    : 'Clothesline has been retracted\nsuccessfully. All safe!',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 14,

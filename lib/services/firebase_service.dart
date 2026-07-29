@@ -17,6 +17,7 @@ class FirebaseService {
   StreamSubscription? _controlSub;
   StreamSubscription? _sensorSub;
   StreamSubscription? _weatherSub;
+  StreamSubscription? _activityLogSub;
 
   String _prevRackPosition = '';
   String _prevMotorStatus = '';
@@ -52,10 +53,12 @@ class FirebaseService {
     _controlSub?.cancel();
     _sensorSub?.cancel();
     _weatherSub?.cancel();
+    _activityLogSub?.cancel();
     _listenStatus();
     _listenControl();
     _listenSensor();
     _listenWeather();
+    _listenActivityLog();
   }
 
   void _listenStatus() {
@@ -302,22 +305,90 @@ class FirebaseService {
     }
   }
 
-  Future<void> _writeActivityLog({
-    required String title,
-    required String desc,
-    required String type,
-  }) async {
-    if (_uid.isEmpty) {
-      print('❌ UID kosong, tidak bisa menulis log');
-      return;
-    }
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    print('📝 [WRITE] title=$title, desc=$desc, type=$type');
-    final logRef = FirebaseDatabase.instance.ref(
-      'JEMURAN/$_uid/activity_log/$timestamp',
-    );
-    await logRef.set({'title': title, 'desc': desc, 'type': type});
-    print('✅ Activity log ditulis');
+
+
+  void _listenActivityLog() {
+    _activityLogSub = FirebaseDatabase.instance
+        .ref('JEMURAN/$_uid/activity_log')
+        .orderByKey()
+        .onValue
+        .listen((event) {
+      final data = event.snapshot.value;
+      if (data == null) {
+        ActivityLogState.entries.value = [];
+        return;
+      }
+
+      final Map<String, dynamic> map;
+      if (data is Map) {
+        map = Map<String, dynamic>.from(data);
+      } else {
+        ActivityLogState.entries.value = [];
+        return;
+      }
+
+      final List<ActivityLogEntry> logEntries = [];
+
+      for (final entry in map.entries) {
+        try {
+          final val = Map<String, dynamic>.from(entry.value as Map);
+          final title = (val['title'] as String?) ?? '';
+          final subtitle = (val['subtitle'] as String?) ?? (val['desc'] as String?) ?? '';
+          final subtitle2 = (val['subtitle2'] as String?) ?? '';
+          final tag = (val['tag'] as String?) ?? (val['type'] as String?) ?? 'Manual';
+          final typeStr = (val['type'] as String?) ?? 'manual';
+          final imagePath = (val['imagePath'] as String?) ?? 'assets/images/motioncard.png';
+          final temp = (val['temp'] as String?) ?? '28°';
+          final isRain = (val['isRain'] as bool?) ?? false;
+          final location = (val['location'] as String?) ?? 'Jakarta';
+
+          // Parse timestamp from key or from stored field
+          int tsMs;
+          if (val['timestamp'] != null) {
+            tsMs = (val['timestamp'] as num).toInt();
+          } else {
+            tsMs = int.tryParse(entry.key) ?? DateTime.now().millisecondsSinceEpoch;
+          }
+          final timestamp = DateTime.fromMillisecondsSinceEpoch(tsMs);
+
+          // Map type string to ActivityType enum
+          ActivityType activityType;
+          switch (typeStr.toLowerCase()) {
+            case 'motion':
+              activityType = ActivityType.motion;
+              break;
+            case 'weather':
+              activityType = ActivityType.weather;
+              break;
+            case 'manual':
+              activityType = ActivityType.manual;
+              break;
+            default:
+              activityType = ActivityType.manual;
+          }
+
+          logEntries.add(ActivityLogEntry(
+            title: title,
+            subtitle1: subtitle,
+            subtitle2: subtitle2,
+            tag: tag,
+            type: activityType,
+            timestamp: timestamp,
+            imagePath: imagePath,
+            temp: temp,
+            isRain: isRain,
+            location: location,
+          ));
+        } catch (e) {
+          print('⚠️ [ACTIVITY LOG] Error parsing entry: $e');
+        }
+      }
+
+      // Sort by timestamp descending (newest first)
+      logEntries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      ActivityLogState.entries.value = logEntries;
+      print('📋 [ACTIVITY LOG] Loaded ${logEntries.length} entries from Firebase');
+    });
   }
 
   void _addNotification({
@@ -437,5 +508,6 @@ class FirebaseService {
     _controlSub?.cancel();
     _sensorSub?.cancel();
     _weatherSub?.cancel();
+    _activityLogSub?.cancel();
   }
 }

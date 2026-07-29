@@ -1,6 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:aerodry_app/constants/app_state.dart';
 
+// ─── Style helper (TOP-LEVEL) ────────────────────────────────────
+class _LogItemStyle {
+  final Color lineColor;
+  final Color tagBgColor;
+  final Color tagTextColor;
+  final Color titleColor;
+  final Color iconBgColor;
+  final String imagePath;
+  final double iconPadding;
+
+  _LogItemStyle({
+    required this.lineColor,
+    required this.tagBgColor,
+    required this.tagTextColor,
+    required this.titleColor,
+    required this.iconBgColor,
+    required this.imagePath,
+    this.iconPadding = 8,
+  });
+}
+
+// ─── ActivityLogScreen ─────────────────────────────────────────────
 class ActivityLogScreen extends StatefulWidget {
   const ActivityLogScreen({super.key});
 
@@ -58,17 +80,27 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
       }
       // filter by search
       if (_searchQuery.isNotEmpty) {
-        final haystack =
-            '${e.title} ${e.subtitle1} ${e.subtitle2} ${e.tag}'.toLowerCase();
+        final haystack = '${e.title} ${e.subtitle1} ${e.subtitle2} ${e.tag}'
+            .toLowerCase();
         if (!haystack.contains(_searchQuery)) return false;
       }
       // filter by date range
       if (_dateRange != null) {
-        final d = DateTime(e.timestamp.year, e.timestamp.month, e.timestamp.day);
-        final start = DateTime(_dateRange!.start.year, _dateRange!.start.month,
-            _dateRange!.start.day);
-        final end = DateTime(_dateRange!.end.year, _dateRange!.end.month,
-            _dateRange!.end.day);
+        final d = DateTime(
+          e.timestamp.year,
+          e.timestamp.month,
+          e.timestamp.day,
+        );
+        final start = DateTime(
+          _dateRange!.start.year,
+          _dateRange!.start.month,
+          _dateRange!.start.day,
+        );
+        final end = DateTime(
+          _dateRange!.end.year,
+          _dateRange!.end.month,
+          _dateRange!.end.day,
+        );
         if (d.isBefore(start) || d.isAfter(end)) return false;
       }
       return true;
@@ -90,28 +122,29 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: Colors.white,
       items: _filterOptions
-          .map((opt) => PopupMenuItem<String>(
-                value: opt,
-                child: Row(
-                  children: [
-                    _filterDot(opt),
-                    const SizedBox(width: 8),
-                    Text(
-                      opt,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF2B3A67),
-                      ),
+          .map(
+            (opt) => PopupMenuItem<String>(
+              value: opt,
+              child: Row(
+                children: [
+                  _filterDot(opt),
+                  const SizedBox(width: 8),
+                  Text(
+                    opt,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2B3A67),
                     ),
-                    if ((_selectedFilter ?? 'All') == opt) ...[
-                      const Spacer(),
-                      const Icon(Icons.check,
-                          size: 16, color: Color(0xFF4F6EDB)),
-                    ],
+                  ),
+                  if ((_selectedFilter ?? 'All') == opt) ...[
+                    const Spacer(),
+                    const Icon(Icons.check, size: 16, color: Color(0xFF4F6EDB)),
                   ],
-                ),
-              ))
+                ],
+              ),
+            ),
+          )
           .toList(),
     );
     if (picked != null) {
@@ -201,7 +234,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
           child: Column(
             children: [
               // ─── Top bar ─────────────────────────────────────────────
-              const SizedBox(height: 16),
+              const SizedBox(height: 40),
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -273,14 +306,17 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.search,
-                                size: 16, color: Color(0xFFE4F0FF)),
+                            const Icon(
+                              Icons.search,
+                              size: 16,
+                              color: Color(0xFFE4F0FF),
+                            ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: TextField(
                                 controller: _searchCtrl,
                                 style: const TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 13,
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -290,7 +326,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                                   border: InputBorder.none,
                                   hintText: 'Search activity...',
                                   hintStyle: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 13,
                                     color: Color(0xFFE4F0FF),
                                   ),
                                   contentPadding: EdgeInsets.zero,
@@ -303,8 +339,11 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                                 onTap: () => _searchCtrl.clear(),
                                 child: const Padding(
                                   padding: EdgeInsets.only(right: 4),
-                                  child: Icon(Icons.close,
-                                      size: 14, color: Color(0xFFE4F0FF)),
+                                  child: Icon(
+                                    Icons.close,
+                                    size: 14,
+                                    color: Color(0xFFE4F0FF),
+                                  ),
                                 ),
                               ),
                             // Calendar icon inside search bar
@@ -359,7 +398,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                               Text(
                                 _selectedFilter ?? 'Filter',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w700,
                                   color: _selectedFilter != null
                                       ? Colors.white
@@ -386,13 +425,14 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
               // Active date range chip
               if (_dateRange != null)
                 Padding(
-                  padding:
-                      const EdgeInsets.only(left: 24, right: 24, top: 6),
+                  padding: const EdgeInsets.only(left: 24, right: 24, top: 6),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.25),
                           borderRadius: BorderRadius.circular(20),
@@ -400,25 +440,30 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.date_range_rounded,
-                                size: 12, color: Colors.white),
+                            const Icon(
+                              Icons.date_range_rounded,
+                              size: 12,
+                              color: Colors.white,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               '${_dateRange!.start.day}/${_dateRange!.start.month}/${_dateRange!.start.year}'
                               ' – '
                               '${_dateRange!.end.day}/${_dateRange!.end.month}/${_dateRange!.end.year}',
                               style: const TextStyle(
-                                fontSize: 11,
+                                fontSize: 13,
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(width: 6),
                             GestureDetector(
-                              onTap: () =>
-                                  setState(() => _dateRange = null),
-                              child: const Icon(Icons.close,
-                                  size: 13, color: Colors.white),
+                              onTap: () => setState(() => _dateRange = null),
+                              child: const Icon(
+                                Icons.close,
+                                size: 13,
+                                color: Colors.white,
+                              ),
                             ),
                           ],
                         ),
@@ -489,8 +534,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
     );
   }
 
-  Widget _buildPagination(
-      int total, int totalPages, int start, int end) {
+  Widget _buildPagination(int total, int totalPages, int start, int end) {
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Row(
@@ -529,12 +573,9 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                 child: Text(
                   '${i + 1}',
                   style: TextStyle(
-                    color:
-                        isActive ? Colors.white : const Color(0xFF8E8E8E),
-                    fontSize: 11,
-                    fontWeight: isActive
-                        ? FontWeight.w700
-                        : FontWeight.w500,
+                    color: isActive ? Colors.white : const Color(0xFF8E8E8E),
+                    fontSize: 13,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
               ),
@@ -561,105 +602,127 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
 }
 
 // ─── History Item ─────────────────────────────────────────────────────────────
-
 class _HistoryItem extends StatelessWidget {
   final ActivityLogEntry entry;
   const _HistoryItem({required this.entry});
 
-  Color get _lineColor {
-    switch (entry.type) {
-      case ActivityType.motion:
-        if (entry.title.contains('No Motion')) return const Color(0xFF47EE9D);
-        // Motion detected is red
-        return const Color(0xFFFF4444);
-      case ActivityType.weather:
-        // isRain = true → gray (retracted/rain/dark)
-        // isRain = false → blue (extended/bright/heat warning)
-        return entry.isRain
-            ? const Color(0xFF9EA3A7)
-            : const Color(0xFF6A9EFF);
-      case ActivityType.manual:
-        // Manual line is orange
-        return const Color(0xFFFF9F0A);
+  // ─── Fungsi penentu warna & icon ────────────────────────────────
+  _LogItemStyle _getStyle(ActivityLogEntry entry) {
+    final String title = entry.title;
+    final String tag = entry.tag;
+
+    // 1. Retracted Alert + Weather → abu-abu semua, icon tutupjemurancard
+    if (title.contains('Retracted') && tag.toLowerCase() == 'weather') {
+      return _LogItemStyle(
+        lineColor: const Color(0xFF9EA3A7),
+        tagBgColor: const Color(0xFFE3E6E7),
+        tagTextColor: const Color(0xFF9EA3A7),
+        titleColor: const Color(0xFF9EA3A7),
+        iconBgColor: const Color(0xFFE5E5E5),
+        imagePath: 'assets/images/masukweathercard.png',
+        iconPadding: 6,
+      );
     }
+
+    // 2. Extended Alert + Weather → biru semua, icon bukajemurancard
+    if (title.contains('Extended') && tag.toLowerCase() == 'weather') {
+      return _LogItemStyle(
+        lineColor: const Color(0xFF6A9EFF),
+        tagBgColor: const Color(0xFFC6D7FF),
+        tagTextColor: const Color(0xFF5E93FF),
+        titleColor: const Color(0xFF5E93FF),
+        iconBgColor: const Color(0xFFDCE7FF),
+        imagePath: 'assets/images/bukajemurancard.png',
+        iconPadding: 6,
+      );
+    }
+
+    // 3. Motion Detected → merah semua, tag Motion merah, icon motioncard
+    if (title.contains('Motion Detected')) {
+      return _LogItemStyle(
+        lineColor: const Color(0xFFFF4444),
+        tagBgColor: const Color(0xFFFFCACA),
+        tagTextColor: const Color(0xFFFF4444),
+        titleColor: const Color(0xFFFF1E1E),
+        iconBgColor: const Color(0xFFFFE0E0),
+        imagePath: 'assets/images/motioncard.png',
+        iconPadding: 9,
+      );
+    }
+
+    // 4. Retracted Alert + Motion → abu-abu semua TAPI tag Motion merah
+    if (title.contains('Retracted') && tag.toLowerCase() == 'motion') {
+      return _LogItemStyle(
+        lineColor: const Color(0xFF9EA3A7),
+        tagBgColor: const Color(0xFFFFCACA),
+        tagTextColor: const Color(0xFFFF4444),
+        titleColor: const Color(0xFF9EA3A7),
+        iconBgColor: const Color(0xFFE5E5E5),
+        imagePath: 'assets/images/masukweathercard.png',
+        iconPadding: 4,
+      );
+    }
+
+    // 5. Manual → orange semua
+    if (entry.type == ActivityType.manual || tag.toLowerCase() == 'manual') {
+      final isOut = title.contains('Extended') || title.toLowerCase().contains('out');
+      return _LogItemStyle(
+        lineColor: const Color(0xFFFF9F0A),
+        tagBgColor: const Color(0xFFFFECC8),
+        tagTextColor: const Color(0xFFFF9F0A),
+        titleColor: const Color(0xFFFF9F0A),
+        iconBgColor: const Color(0xFFFFE8C8),
+        imagePath: isOut
+            ? 'assets/images/keluarmanualcard.png'
+            : 'assets/images/masukmanualcard.png',
+        iconPadding: 7,
+      );
+    }
+
+    // Fallback: motion type merah
+    if (entry.type == ActivityType.motion) {
+      return _LogItemStyle(
+        lineColor: const Color(0xFFFF4444),
+        tagBgColor: const Color(0xFFFFCACA),
+        tagTextColor: const Color(0xFFFF4444),
+        titleColor: const Color(0xFFFF1E1E),
+        iconBgColor: const Color(0xFFFFE0E0),
+        imagePath: 'assets/images/motioncard.png',
+        iconPadding: 8,
+      );
+    }
+
+    // Fallback: weather type
+    if (entry.type == ActivityType.weather) {
+      final isRetracted = title.contains('Retracted') || entry.isRain;
+      return _LogItemStyle(
+        lineColor: isRetracted ? const Color(0xFF9EA3A7) : const Color(0xFF6A9EFF),
+        tagBgColor: isRetracted ? const Color(0xFFE3E6E7) : const Color(0xFFC6D7FF),
+        tagTextColor: isRetracted ? const Color(0xFF9EA3A7) : const Color(0xFF5E93FF),
+        titleColor: isRetracted ? const Color(0xFF9EA3A7) : const Color(0xFF5E93FF),
+        iconBgColor: isRetracted ? const Color(0xFFE5E5E5) : const Color(0xFFDCE7FF),
+        imagePath: isRetracted
+            ? 'assets/images/masukweathercard.png'
+            : 'assets/images/keluarweathercard.png',
+      );
+    }
+
+    // Default fallback
+    return _LogItemStyle(
+      lineColor: const Color(0xFF9EA3A7),
+      tagBgColor: const Color(0xFFE3E6E7),
+      tagTextColor: const Color(0xFF9EA3A7),
+      titleColor: const Color(0xFF5B5B5B),
+      iconBgColor: const Color(0xFFF0F0F0),
+      imagePath: 'assets/images/motioncard.png',
+    );
   }
 
-  Color get _tagColor {
-    switch (entry.tag) {
-      case 'Motion':
-        if (entry.title.contains('No Motion')) {
-          return const Color(0xFFB9FFD8); // soft green
-        }
-        return const Color(0xFFFFCACA); // soft red
-      case 'Weather':
-        // isRain true → gray (retracted/rain/dark)
-        // isRain false → blue (extended/bright/heat)
-        return entry.isRain
-            ? const Color(0xFF777777)
-            : const Color(0xFFC6D7FF);
-      case 'Manual':
-        return const Color(0xFFFFECC8); // soft orange
-      default:
-        return const Color(0xFFE3E6E7);
-    }
-  }
-
-  Color get _tagTextColor {
-    switch (entry.tag) {
-      case 'Motion':
-        if (entry.title.contains('No Motion')) {
-          return const Color(0xFF35E986); // green
-        }
-        return const Color(0xFFFF4444); // red
-      case 'Weather':
-        return entry.isRain ? Colors.white : const Color(0xFF5E93FF);
-      case 'Manual':
-        return const Color(0xFFFF9F0A); // orange
-      default:
-        return const Color(0xFF9EA3A7);
-    }
-  }
-
-  Color get _titleColor {
-    // Motion Detected → red
-    if (entry.title == 'Motion Detected') {
-      return const Color(0xFFFF1E1E);
-    }
-    // No Motion Detected → green
-    if (entry.title.contains('No Motion')) {
-      return const Color(0xFF35E986);
-    }
-    // Manual titles → orange
-    if (entry.tag == 'Manual') {
-      return const Color(0xFFFF9F0A);
-    }
-    // Weather extended (LDR bright light) → blue
-    if (entry.tag == 'Weather' && !entry.isRain) {
-      return const Color(0xFF5E93FF);
-    }
-    // Weather retracted (rain / no light) → gray
-    if (entry.tag == 'Weather' && entry.isRain) {
-      return const Color(0xFF9EA3A7);
-    }
-    return const Color(0xFF5B5B5B);
-  }
-
-  Color get _iconBgColor {
-    switch (entry.type) {
-      case ActivityType.manual:
-        return const Color(0xFFFFE8C8); // soft orange
-      case ActivityType.motion:
-        if (entry.title.contains('No Motion')) return const Color(0xFFD4FFE7);
-        return const Color(0xFFFFE0E0); // soft red
-      case ActivityType.weather:
-        return entry.isRain
-            ? const Color(0xFFE5E5E5) // soft grey
-            : const Color(0xFFDCE7FF); // soft blue
-    }
-  }
-
+  // ─── Build widget ───────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final style = _getStyle(entry);
+
     return SizedBox(
       height: 88,
       child: Row(
@@ -670,7 +733,7 @@ class _HistoryItem extends StatelessWidget {
             width: 5,
             height: 74,
             decoration: BoxDecoration(
-              color: _lineColor,
+              color: style.lineColor,
               borderRadius: BorderRadius.circular(20),
             ),
           ),
@@ -682,14 +745,15 @@ class _HistoryItem extends StatelessWidget {
             height: 49,
             margin: const EdgeInsets.only(top: 10),
             decoration: BoxDecoration(
-              color: _iconBgColor,
+              color: style.iconBgColor,
               shape: BoxShape.circle,
             ),
-            child: ClipOval(
-              child: Padding(
-                padding: const EdgeInsets.all(6),
+            child: Center(
+              child: SizedBox(
+                width: 49 - style.iconPadding * 2,
+                height: 49 - style.iconPadding * 2,
                 child: Image.asset(
-                  entry.imagePath,
+                  style.imagePath,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -708,8 +772,8 @@ class _HistoryItem extends StatelessWidget {
                     entry.title,
                     maxLines: 1,
                     style: TextStyle(
-                      color: _titleColor,
-                      fontSize: 14,
+                      color: style.titleColor,
+                      fontSize: 15,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -717,9 +781,9 @@ class _HistoryItem extends StatelessWidget {
                     entry.subtitle1,
                     style: const TextStyle(
                       color: Color(0xFFB0B0B0),
-                      fontSize: 12,
+                      fontSize: 14,
                       height: 1.2,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   if (entry.subtitle2.isNotEmpty)
@@ -727,7 +791,7 @@ class _HistoryItem extends StatelessWidget {
                       entry.subtitle2,
                       style: const TextStyle(
                         color: Color(0xFFB0B0B0),
-                        fontSize: 12,
+                        fontSize: 14,
                         height: 1.2,
                         fontWeight: FontWeight.w500,
                       ),
@@ -749,19 +813,22 @@ class _HistoryItem extends StatelessWidget {
                         entry.temp,
                         style: const TextStyle(
                           color: Color(0xFF8A8A8A),
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(width: 6),
-                      const Icon(Icons.location_on_outlined,
-                          color: Color(0xFF8A8A8A), size: 11),
+                      const Icon(
+                        Icons.location_on_outlined,
+                        color: Color(0xFF8A8A8A),
+                        size: 13,
+                      ),
                       const SizedBox(width: 2),
                       Text(
                         entry.location,
                         style: const TextStyle(
                           color: Color(0xFF8A8A8A),
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -772,38 +839,38 @@ class _HistoryItem extends StatelessWidget {
             ),
           ),
 
-          // Time + Tag column (tag centered, not too close to time)
+          // Time + Tag column
           Padding(
             padding: const EdgeInsets.only(top: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                // Tag
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
-                    color: _tagColor,
+                    color: style.tagBgColor,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     entry.tag,
                     style: TextStyle(
-                      color: _tagTextColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
+                      color: style.tagTextColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
                 const SizedBox(height: 6),
-                // Time
                 Text(
                   entry.formattedTime,
                   textAlign: TextAlign.right,
                   style: const TextStyle(
                     color: Color(0xFF9A9A9A),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                     height: 1.25,
                   ),
                 ),
@@ -815,3 +882,4 @@ class _HistoryItem extends StatelessWidget {
     );
   }
 }
+
