@@ -341,6 +341,16 @@ class FirebaseService {
               activityType = ActivityType.manual;
           }
 
+          // Always use current active device location (not stale Firebase value)
+          final activeLocation = deviceList.isNotEmpty
+              ? deviceList[activeDeviceIndex].location
+              : location;
+          // Use live temperature if available, fallback to stored value
+          final activeTemp = DryingState.temperature.value.isNotEmpty &&
+                  DryingState.temperature.value != '--°'
+              ? DryingState.temperature.value
+              : temp;
+
           logEntries.add(ActivityLogEntry(
             title: title,
             subtitle1: subtitle,
@@ -349,9 +359,9 @@ class FirebaseService {
             type: activityType,
             timestamp: timestamp,
             imagePath: imagePath,
-            temp: temp,
+            temp: activeTemp,
             isRain: isRain,
-            location: location,
+            location: activeLocation,
           ));
         } catch (e) {
           print('⚠️ [ACTIVITY LOG] Error parsing entry: $e');
@@ -388,8 +398,49 @@ class FirebaseService {
       _knownActivityKeys = newKeys;
 
       ActivityLogState.entries.value = logEntries;
+      // Derive weatherCondition from most recent weather activity log entry
+      _updateWeatherFromLog(logEntries);
       print('📋 [ACTIVITY LOG] Loaded ${logEntries.length} entries from Firebase');
     });
+  }
+
+  /// Update weatherCondition from the most recent weather-type activity log entry.
+  void _updateWeatherFromLog(List<ActivityLogEntry> entries) {
+    // Find the most recent entry with tag 'weather' (already sorted newest first)
+    final weatherEntry = entries.where((e) =>
+      e.tag.toLowerCase() == 'weather' ||
+      (e.title.contains('Retracted') && e.subtitle1.toLowerCase().contains('rain')) ||
+      (e.title.contains('Retracted') && (e.subtitle1.toLowerCase().contains('light') || e.subtitle1.toLowerCase().contains('ldr'))) ||
+      (e.title.contains('Extended') && e.tag.toLowerCase() == 'weather')
+    ).firstOrNull;
+
+    if (weatherEntry == null) return;
+
+    final title = weatherEntry.title.toLowerCase();
+    final subtitle = weatherEntry.subtitle1.toLowerCase();
+    final tag = weatherEntry.tag.toLowerCase();
+
+    String newCondition;
+    if (title.contains('retracted')) {
+      if (subtitle.contains('rain') || tag == 'weather' && subtitle.contains('rain')) {
+        newCondition = 'Rain';
+      } else if (subtitle.contains('light') || subtitle.contains('ldr') || subtitle.contains('dark') || subtitle.contains('no light')) {
+        newCondition = 'No Light';
+      } else {
+        newCondition = 'Rain'; // default retract = rain
+      }
+    } else if (title.contains('extended')) {
+      if (subtitle.contains('rain stopped') || subtitle.contains('clear')) {
+        newCondition = 'Clear';
+      } else {
+        newCondition = 'Sunny'; // extended = sunlight detected
+      }
+    } else {
+      return;
+    }
+
+    print('🌤️ [WEATHER] Derived condition from log: $newCondition (from: ${weatherEntry.title})');
+    DryingState.weatherCondition.value = newCondition;
   }
 
   void _addNotification({
