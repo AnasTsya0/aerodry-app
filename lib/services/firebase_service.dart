@@ -195,6 +195,8 @@ class FirebaseService {
           'Rain detected on rain sensor',
           sensorName: 'Rain Sensor',
         );
+        DryingState.weatherCondition.value = 'Rain';
+        DryingState.lastUpdateTime.value = DateTime.now();
       }
 
       if (_initialized &&
@@ -209,6 +211,12 @@ class FirebaseService {
           iconBg: const Color(0xFFDCE6FF),
           isRain: false,
         );
+        DryingState.onSensorTriggered(
+          'Rain stopped, waiting for sunlight',
+          sensorName: 'Rain Sensor',
+        );
+        DryingState.weatherCondition.value = 'Clear';
+        DryingState.lastUpdateTime.value = DateTime.now();
       }
 
       // LDR detection with hysteresis
@@ -229,6 +237,8 @@ class FirebaseService {
           'Bright light detected by LDR sensor',
           sensorName: 'LDR Sensor',
         );
+        DryingState.weatherCondition.value = 'Sunny';
+        DryingState.lastUpdateTime.value = DateTime.now();
       }
 
       if (_initialized &&
@@ -248,6 +258,8 @@ class FirebaseService {
           'No light detected by LDR sensor',
           sensorName: 'LDR Sensor',
         );
+        DryingState.weatherCondition.value = 'No Light';
+        DryingState.lastUpdateTime.value = DateTime.now();
       }
 
       // Motion detection
@@ -343,12 +355,16 @@ class FirebaseService {
           final location = (val['location'] as String?) ?? 'Jakarta';
 
           // Parse timestamp from key or from stored field
-          int tsMs;
+          int tsRaw;
           if (val['timestamp'] != null) {
-            tsMs = (val['timestamp'] as num).toInt();
+            tsRaw = (val['timestamp'] as num).toInt();
           } else {
-            tsMs = int.tryParse(entry.key) ?? DateTime.now().millisecondsSinceEpoch;
+            tsRaw = int.tryParse(entry.key) ?? DateTime.now().millisecondsSinceEpoch;
           }
+          // Auto-detect seconds vs milliseconds:
+          // If value < 10000000000 (Sep 2001 in ms, or year 2286 in sec),
+          // it's likely seconds → convert to ms
+          final int tsMs = tsRaw < 10000000000 ? tsRaw * 1000 : tsRaw;
           final timestamp = DateTime.fromMillisecondsSinceEpoch(tsMs);
 
           // Map type string to ActivityType enum

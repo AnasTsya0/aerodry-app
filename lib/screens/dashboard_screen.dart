@@ -555,6 +555,8 @@ class _DryingCardState extends State<_DryingCard> {
     DryingState.dryingDurationMinutes.addListener(_onStateChange);
     DryingState.dryingStartTime.addListener(_onStateChange);
     DryingState.online.addListener(_onStateChange);
+    DryingState.lastTriggerSensor.addListener(_onStateChange);
+    DryingState.lastTriggerReason.addListener(_onStateChange);
   }
 
   @override
@@ -565,6 +567,8 @@ class _DryingCardState extends State<_DryingCard> {
     DryingState.dryingDurationMinutes.removeListener(_onStateChange);
     DryingState.dryingStartTime.removeListener(_onStateChange);
     DryingState.online.removeListener(_onStateChange);
+    DryingState.lastTriggerSensor.removeListener(_onStateChange);
+    DryingState.lastTriggerReason.removeListener(_onStateChange);
     super.dispose();
   }
 
@@ -575,6 +579,7 @@ class _DryingCardState extends State<_DryingCard> {
   @override
   Widget build(BuildContext context) {
     final mode = DryingState.displayMode.value;
+    final String modeDisplay = mode == 'Manual' ? 'Manual' : 'Automatic';
     final lastUpdate = DryingState.formattedLastUpdate;
     final weatherCond = DryingState.weatherCondition.value;
     final dryingDuration = DryingState.formattedDryingDuration;
@@ -706,7 +711,7 @@ class _DryingCardState extends State<_DryingCard> {
                           _DryingText(
                             icon: Icons.settings_outlined,
                             title: 'Mode',
-                            value: mode,
+                            value: modeDisplay,
                           ),
                         ],
                       ),

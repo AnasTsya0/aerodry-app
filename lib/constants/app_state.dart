@@ -368,7 +368,7 @@ class ActivityLogState {
     required String moveType,
     required String weatherLabel,
   }) {
-    final now = DateTime.now().toUtc().add(const Duration(hours: 7));
+    final now = DateTime.now();
     final isOut = moveType == 'out';
     // Use the active device's location
     final location = deviceList.isNotEmpty
@@ -403,7 +403,7 @@ class ActivityLogState {
     String temp = '28°',
     bool isRain = false,
   }) {
-    final now = DateTime.now().toUtc().add(const Duration(hours: 7));
+    final now = DateTime.now();
     final location = deviceList.isNotEmpty
         ? deviceList[activeDeviceIndex].location
         : 'Jakarta';
